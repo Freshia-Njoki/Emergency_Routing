@@ -141,26 +141,33 @@ def speeds_to_travel_times(pred_speeds_mph: np.ndarray,
                            edge_sensor_map: dict) -> dict:
     """
     Converts sensor speed predictions to per-edge travel time functions.
-
-    Parameters
-    ----------
-    pred_speeds_mph : (n_sensors, N_FUTURE_STEPS)
-    edge_lengths_m  : {(u,v): length_in_metres}
-    edge_sensor_map : {(u,v): sensor_index}  — which sensor governs this edge
-
-    Returns
-    -------
-    travel_time_fn  : {(u,v): np.ndarray shape (N_FUTURE_STEPS,)}
-                      travel time in seconds for each future 5-min slot
+    Handles sensor_idx stored as int, numpy int, or numpy array.
     """
     travel_time_fn = {}
     for edge, sensor_idx in edge_sensor_map.items():
-        speeds_mps = pred_speeds_mph[sensor_idx] * SPEED_UNIT_MPH_TO_MPS
-        length_m   = float(edge_lengths_m.get(edge, 500.0))
-        tt_seconds = [float(length_m / max(float(s), 0.1)) for s in speeds_mps]
-        travel_time_fn[edge] = tt_seconds
-    return travel_time_fn
 
+        # ── safely convert sensor_idx to plain Python int ────────────────────
+        try:
+            idx = int(np.array(sensor_idx).flat[0])
+        except Exception:
+            idx = 0
+
+        # ── bounds check ──────────────────────────────────────────────────────
+        if idx < 0 or idx >= pred_speeds_mph.shape[0]:
+            idx = idx % pred_speeds_mph.shape[0]
+
+        # ── get 1-D speed array shape (6,) ───────────────────────────────────
+        speeds_mps = pred_speeds_mph[idx].flatten() * SPEED_UNIT_MPH_TO_MPS
+
+        length_m   = float(edge_lengths_m.get(edge, 500.0))
+
+        # ── build list of 6 scalar floats ─────────────────────────────────────
+        tt_seconds = [float(length_m / max(float(s), 0.1))
+                      for s in speeds_mps[:6]]
+
+        travel_time_fn[edge] = tt_seconds
+
+    return travel_time_fn
 
 def get_free_flow_travel_time(edge_lengths_m: dict) -> dict:
     """Baseline: free-flow travel time (lower bound heuristic)."""

@@ -76,7 +76,7 @@ def generate_od_pairs(graph, n: int = N_OD_PAIRS,
     """Generate random OD pairs with minimum path length."""
     import networkx as nx
     rng    = random.Random(RANDOM_SEED)
-    nodes  = list(graph.nodes())
+    nodes  = [int(n) for n in graph.nodes()]
     pairs  = []
     attempts = 0
     while len(pairs) < n and attempts < n * 20:

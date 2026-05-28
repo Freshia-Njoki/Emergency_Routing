@@ -220,19 +220,55 @@ def _load_sensor_locations(path: Optional[str], n: int):
         return list(zip(lats, lons))
     
 def load_from_processed(processed_dir: str = 'data/processed'):
+    """
+    Loads your existing preprocessed road network files.
+    Normalises edge keys from (u, v, 0) → (u, v)
+    Normalises sensor values from [0] → 0
+    """
     import pickle
+
     graph_path = os.path.join(processed_dir, 'la_road_network.pkl')
     esm_path   = os.path.join(processed_dir, 'edge_sensor_mapping.pkl')
 
+    # ── Load graph ────────────────────────────────────────────────────────────
     with open(graph_path, 'rb') as f:
         graph = pickle.load(f)
-    with open(esm_path, 'rb') as f:
-        edge_sensor_map = pickle.load(f)
-
-    edge_lengths_m = {
-        (u, v): float(data.get('length', 500.0))
-        for u, v, data in graph.edges(data=True)
-    }
     print(f"[GraphBuilder] Real graph: "
           f"{graph.number_of_nodes()} nodes, {graph.number_of_edges()} edges")
-    return graph, edge_sensor_map, edge_lengths_m    
+
+    # ── Load raw edge→sensor map ──────────────────────────────────────────────
+    with open(esm_path, 'rb') as f:
+        raw_esm = pickle.load(f)
+
+    # ── Normalise keys and values ─────────────────────────────────────────────
+    # Keys:   (u, v, 0)  →  (u, v)       [OSM multigraph key stripped]
+    # Values: [0]        →  0             [list unwrapped to int]
+    edge_sensor_map = {}
+    for key, val in raw_esm.items():
+
+        # normalise key to 2-tuple
+        if isinstance(key, (tuple, list)) and len(key) >= 2:
+            edge = (int(key[0]), int(key[1]))
+        else:
+            edge = key
+
+        # normalise value to plain int
+        if isinstance(val, (list, tuple)):
+            sensor_idx = int(val[0])
+        elif hasattr(val, 'flat'):          # numpy array
+            sensor_idx = int(val.flat[0])
+        else:
+            sensor_idx = int(val)
+
+        edge_sensor_map[edge] = sensor_idx
+
+    print(f"[GraphBuilder] edge_sensor_map: "
+          f"{len(edge_sensor_map)} edges, "
+          f"sensor range 0–{max(edge_sensor_map.values())}")
+
+    # ── Build edge lengths from graph ─────────────────────────────────────────
+    edge_lengths_m = {}
+    for u, v, data in graph.edges(data=True):
+        edge_lengths_m[(int(u), int(v))] = float(data.get('length', 500.0))
+
+    return graph, edge_sensor_map, edge_lengths_m 
