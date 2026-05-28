@@ -218,3 +218,21 @@ def _load_sensor_locations(path: Optional[str], n: int):
         lats = np.random.uniform(33.7, 34.4, n)
         lons = np.random.uniform(-118.7, -117.8, n)
         return list(zip(lats, lons))
+    
+def load_from_processed(processed_dir: str = 'data/processed'):
+    import pickle
+    graph_path = os.path.join(processed_dir, 'la_road_network.pkl')
+    esm_path   = os.path.join(processed_dir, 'edge_sensor_mapping.pkl')
+
+    with open(graph_path, 'rb') as f:
+        graph = pickle.load(f)
+    with open(esm_path, 'rb') as f:
+        edge_sensor_map = pickle.load(f)
+
+    edge_lengths_m = {
+        (u, v): float(data.get('length', 500.0))
+        for u, v, data in graph.edges(data=True)
+    }
+    print(f"[GraphBuilder] Real graph: "
+          f"{graph.number_of_nodes()} nodes, {graph.number_of_edges()} edges")
+    return graph, edge_sensor_map, edge_lengths_m    

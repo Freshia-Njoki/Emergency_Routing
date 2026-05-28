@@ -58,38 +58,18 @@ N_FUTURE_STEPS   = 6
 
 
 def load_metr_la_data(data_dir: str) -> Optional[np.ndarray]:
-    """
-    Loads METR-LA speed data. Expects metr-la.h5 or metr_la.npy in data_dir.
-    Returns np.ndarray shape (T, N_sensors) in mph.
-    """
-    import os
-    for fname in ('metr-la.h5', 'metr_la.h5', 'metr-la.npy', 'train.npz'):
-        fpath = os.path.join(data_dir, fname)
-        if os.path.exists(fpath):
-            if fname.endswith('.h5'):
-                try:
-                    import h5py
-                    with h5py.File(fpath, 'r') as f:
-                        key = list(f.keys())[0]
-                        data = f[key][:]
-                    # shape may be (T, N) or (N, T)
-                    if data.shape[0] < data.shape[1]:
-                        data = data.T
-                    print(f"[Eval] Loaded {fname}: shape {data.shape}")
-                    return data.astype(np.float32)
-                except Exception as e:
-                    print(f"[Eval] Could not read {fname}: {e}")
-            elif fname.endswith('.npy'):
-                data = np.load(fpath)
-                print(f"[Eval] Loaded {fname}: shape {data.shape}")
-                return data.astype(np.float32)
-            elif fname.endswith('.npz'):
-                data = np.load(fpath)
-                arr = data[list(data.keys())[0]]
-                print(f"[Eval] Loaded {fname}: shape {arr.shape}")
-                return arr.astype(np.float32)
+    npz_path = os.path.join(data_dir, 'processed', 'training_data.npz')
+    if os.path.exists(npz_path):
+        data     = np.load(npz_path)
+        # X_train shape: (23977, 12, 207) — take first timestep of each window
+        speed_data = np.vstack([
+            data['X_train'][:, 0, :],   # (23977, 207)
+            data['X_val'][:, 0, :],     # ( 5138, 207)
+            data['X_test'][:, 0, :]     # ( 5139, 207)
+        ])                              # → (34254, 207)
+        print(f"[Eval] Loaded training_data.npz: shape {speed_data.shape}")
+        return speed_data.astype(np.float32)
     return None
-
 
 def generate_od_pairs(graph, n: int = N_OD_PAIRS,
                       min_hops: int = 3) -> List[Tuple[int, int]]:
@@ -281,14 +261,16 @@ def run_evaluation(model_dir:  str = 'models/saved',
 
     # ── 2. Build graph ────────────────────────────────────────────────────────
     print("[Phase 2] Building road graph...")
-    adj_path = os.path.join(data_dir, 'adj_mx.pkl')
-    if os.path.exists(adj_path) and not use_synthetic:
-        from src.routing.graph_builder import build_graph_from_adjacency
-        graph, edge_sensor_map, edge_lengths_m = \
-            build_graph_from_adjacency(adj_path)
+    processed_dir   = os.path.join(data_dir, 'processed')
+    la_network_path = os.path.join(processed_dir, 'la_road_network.pkl')
+
+    if os.path.exists(la_network_path) and not use_synthetic:
+        from src.routing.graph_builder import load_from_processed
+        graph, edge_sensor_map, edge_lengths_m = load_from_processed(processed_dir)
+        print("[Phase 2] ✓ Real OSM road network loaded")
     else:
-        print("[Phase 2] Using synthetic graph (adj_mx.pkl not found)")
         graph, edge_sensor_map, edge_lengths_m = build_synthetic_graph()
+        print("[Phase 2] Synthetic graph used")
 
     # ── 3. Load speed data ────────────────────────────────────────────────────
     print("[Phase 3] Loading speed data...")

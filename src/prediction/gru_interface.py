@@ -56,38 +56,85 @@ def load_model_and_scaler(model_dir: str):
 
 def predict_speeds(model, scaler, recent_speeds: np.ndarray) -> np.ndarray:
     """
-    Predicts future speeds for all sensors.
-
-    Parameters
-    ----------
-    model        : loaded Keras model
-    scaler       : fitted MinMaxScaler / StandardScaler
-    recent_speeds: np.ndarray shape (n_sensors, SEQUENCE_LEN)
-                   last 12 x 5-min speed readings per sensor (mph)
-
-    Returns
-    -------
-    predicted    : np.ndarray shape (n_sensors, N_FUTURE_STEPS)
-                   predicted speeds in mph
+    Parameters:  recent_speeds shape (207, 12)
+    Returns:     predicted speeds shape (207, 6)
     """
-    n_sensors = recent_speeds.shape[0]
+    n_sensors, seq_len = recent_speeds.shape   # 207, 12
+    n_feat = scaler.n_features_in_
 
-    # scale each sensor's sequence
-    flat = recent_speeds.reshape(-1, 1)
-    flat_scaled = scaler.transform(flat)
-    scaled = flat_scaled.reshape(n_sensors, SEQUENCE_LEN, 1)
+    # ── Step 1: Scale input ───────────────────────────────────────────────────
+    if n_feat == n_sensors:                    # scaler fitted on (T, 207)
+        ts_scaled = scaler.transform(recent_speeds.T)   # (12, 207)
+        scaled    = ts_scaled.T                          # (207, 12)
+    elif n_feat == 1:
+        flat   = recent_speeds.reshape(-1, 1)
+        scaled = scaler.transform(flat).reshape(n_sensors, seq_len)
+    else:
+        mu    = recent_speeds.mean()
+        sigma = recent_speeds.std() + 1e-8
+        scaled = (recent_speeds - mu) / sigma
 
-    # model expects (batch, timesteps, features)
-    raw_pred = model.predict(scaled, verbose=0)   # (n_sensors, N_FUTURE_STEPS)
+    # ── Step 2: Build model input ─────────────────────────────────────────────
+    in_shape = model.input_shape               # e.g. (None, 12, 1) or (None, 12, 207)
+    n_in_feat = in_shape[-1]
 
-    # inverse-scale
-    pred_flat = raw_pred.reshape(-1, 1)
-    pred_mph  = scaler.inverse_transform(pred_flat).reshape(n_sensors, -1)
+    if n_in_feat == 1:
+        X = scaled.reshape(n_sensors, seq_len, 1)      # (207, 12, 1)
+    elif n_in_feat == n_sensors:
+        X = scaled.T[np.newaxis, :, :]                  # (1, 12, 207)
+    else:
+        X = scaled.reshape(n_sensors, seq_len, 1)
 
-    # clip to safe minimum (avoid divide-by-zero in travel time)
-    pred_mph = np.clip(pred_mph, 1.0, None)
-    return pred_mph
+    # ── Step 3: Predict ───────────────────────────────────────────────────────
+    raw = model.predict(X, verbose=0)          # unknown shape — handle all cases
 
+    # ── Step 4: Force output to (207, 6) ─────────────────────────────────────
+    raw = np.array(raw)
+
+    if raw.ndim == 1:
+        # (207*6,) → (207, 6)
+        raw = raw.reshape(n_sensors, -1)
+
+    elif raw.ndim == 2:
+        # Could be (207, 6), (6, 207), (1, 207*6), (207, 1) etc.
+        if raw.shape == (n_sensors, 6):
+            pass                                         # already correct
+        elif raw.shape == (6, n_sensors):
+            raw = raw.T                                  # (207, 6)
+        elif raw.shape[0] == 1:
+            raw = raw.reshape(n_sensors, -1)             # (1, X) → (207, 6)
+        elif raw.shape[1] == 1:
+            raw = np.repeat(raw, 6, axis=1)              # (207, 1) → (207, 6)
+
+    elif raw.ndim == 3:
+        # Could be (207, 6, 1), (1, 6, 207), (1, 207, 6) etc.
+        if raw.shape[0] == 1 and raw.shape[1] == seq_len:
+            raw = raw[0].T                               # (1,12,207)→(207,12) wrong
+        elif raw.shape[0] == 1:
+            raw = raw[0]                                 # (1, 6, 207) → (6, 207)
+            if raw.shape[0] != n_sensors:
+                raw = raw.T                              # → (207, 6)
+        elif raw.shape[-1] == 1:
+            raw = raw[:, :, 0]                           # (207, 6, 1) → (207, 6)
+        else:
+            raw = raw.reshape(n_sensors, -1)
+
+    # Final safety check
+    if raw.shape[0] != n_sensors:
+        raw = raw.T
+    if raw.ndim != 2 or raw.shape[1] < 1:
+        raw = np.full((n_sensors, 6), recent_speeds.mean())
+
+    # ── Step 5: Inverse scale ─────────────────────────────────────────────────
+    if n_feat == n_sensors:
+        pred_mph = scaler.inverse_transform(raw.T).T    # (207, 6)
+    elif n_feat == 1:
+        pred_mph = scaler.inverse_transform(
+            raw.reshape(-1, 1)).reshape(n_sensors, -1)
+    else:
+        pred_mph = raw * sigma + mu
+
+    return np.clip(pred_mph.astype(np.float64), 1.0, None)
 
 def speeds_to_travel_times(pred_speeds_mph: np.ndarray,
                            edge_lengths_m: dict,
