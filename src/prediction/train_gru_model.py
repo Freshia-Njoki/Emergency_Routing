@@ -82,7 +82,7 @@ callbacks = [
 
 # Train the model
 print("\n🚀 Training model...")
-print("This may take 10-20 minutes depending on your computer...")
+print("This may take 10-20 minutes depending on my computer...")
 
 history = model.fit(
     X_train, y_train,
@@ -165,4 +165,4 @@ print("   - models/saved/gru_best.keras (best checkpoint)")
 print("   - models/saved/training_history.pkl (training metrics)")
 print("   - visualizations/gru_training_history.png")
 print("   - visualizations/gru_predictions.png")
-print("\n🎉 Your traffic prediction model is ready!")
+print("\n🎉 my traffic prediction model is ready!")

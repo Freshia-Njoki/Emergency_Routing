@@ -26,7 +26,7 @@ from typing import Dict, Tuple, Optional
 
 # ── METR-LA sensor metadata ───────────────────────────────────────────────────
 # These are approximate centroids for LA county loop detectors.
-# Replace with your actual sensor_locations.csv if available.
+# Replace with my actual sensor_locations.csv if available.
 METR_LA_N_SENSORS = 207
 PEMS_BAY_N_SENSORS = 325
 
@@ -221,7 +221,7 @@ def _load_sensor_locations(path: Optional[str], n: int):
     
 def load_from_processed(processed_dir: str = 'data/processed'):
     """
-    Loads your existing preprocessed road network files.
+    Loads my existing preprocessed road network files.
     Normalises edge keys from (u, v, 0) → (u, v)
     Normalises sensor values from [0] → 0
     """

@@ -1,21 +1,21 @@
 """
 gru_interface.py
 ----------------
-Loads your trained GRU model (gru_best.h5 / gru_improved_best.h5) and
+Loads my trained GRU model (gru_best.h5 / gru_improved_best.h5) and
 scaler.pkl, then exposes a single function:
 
     predict_travel_times(sensor_speeds, edge_sensor_map, road_graph)
         -> dict  {(u, v): [tt_t0, tt_t1, ..., tt_t5]}   (6 steps x 5 min)
 
 This is the ONLY file the routing module ever calls.  It is a wrapper
-around whatever model you already trained — zero changes needed there.
+around model I've already trained
 """
 
 import os
 import pickle
 import numpy as np
 
-# ── constants (match your training setup) ────────────────────────────────────
+# ── constants (match my training setup) ────────────────────────────────────
 SEQUENCE_LEN   = 12          # input time-steps fed to GRU
 N_FUTURE_STEPS = 6           # 6 x 5 min = 30-min horizon
 SPEED_UNIT_MPH_TO_MPS = 0.44704

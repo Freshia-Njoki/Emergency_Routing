@@ -1,11 +1,9 @@
 """
-adaptive_controller.py
-----------------------
 Threshold-based adaptive route recommendation controller.
 
-This is Component 3 of your framework (Section 2.9 of your proposal).
+This is Component 3 of my framework
 
-Core logic (from your proposal, Section 3.8):
+Core logic
 
     Trigger a new route recommendation when:
 

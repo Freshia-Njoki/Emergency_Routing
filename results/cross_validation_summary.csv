@@ -1,0 +1,3 @@
+Dataset,Sensors,Epochs,Train Loss,Val Loss,MAE (mph),RMSE (mph)
+METR-LA,207,17,0.3826,0.4276,3.42,6.14
+PEMS-BAY,325,79,0.0024,0.0027,2.38,4.49
