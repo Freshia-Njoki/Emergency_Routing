@@ -311,8 +311,9 @@ def simulate_path(path, actual_mph, edge_sensor_map, edge_lengths):
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def simulate_with_replanning(G, origin, dest, model, scaler,
-                              X_seq_t, actual_mph, edge_sensor_map,
+                              X_test_seq, t_idx, actual_mph, edge_sensor_map,
                               edge_lengths, ff, delta):
+    X_seq_t = X_test_seq[t_idx]
     """
     Framework journey simulation with adaptive replanning.
 
@@ -323,7 +324,7 @@ def simulate_with_replanning(G, origin, dest, model, scaler,
     - Journey time computed using actual_mph (ground truth) throughout.
     """
     # Initial route using GRU predictions
-    pred_mph = gru_predict_mph(model, scaler, X_seq_t)     # (N_FUTURE, 207)
+    pred_mph = gru_predict_mph(model, scaler, X_seq_t)
     pred_tt  = speeds_to_edge_tt(pred_mph, edge_sensor_map, edge_lengths)
 
     path, lat = astar_route(G, origin, dest, pred_tt, ff)
@@ -364,7 +365,9 @@ def simulate_with_replanning(G, origin, dest, model, scaler,
 
         # Refresh GRU prediction (in practice would advance window;
         # here we re-use same window to simulate a stable horizon)
-        pred_mph_new = gru_predict_mph(model, scaler, X_seq_t)
+        slots_passed = min(int(elapsed // 300), len(X_test_seq) - t_idx - 1)
+        X_seq_new = X_test_seq[t_idx + slots_passed]
+        pred_mph_new = gru_predict_mph(model, scaler, X_seq_new)
         pred_tt_new  = speeds_to_edge_tt(pred_mph_new, edge_sensor_map, edge_lengths)
 
         _, T_new_lat = astar_route(G, current, dest, pred_tt_new, ff)
@@ -437,7 +440,7 @@ def run_experiments(model, scaler, G, esm, el,
     print(f"\n  {N_OD_PAIRS} OD pairs × {len(SCENARIOS)} scenarios × "
           f"{len(DELTA_VALUES)} delta values = {total} runs\n")
 
-    ff   = free_flow_tt(el)
+    ff = free_flow_tt(el)
     pairs = make_od_pairs(G)
     hist_tt = speeds_to_edge_tt(hist_mph, esm, el)
 
@@ -498,7 +501,7 @@ def run_experiments(model, scaler, G, esm, el,
                 try:
                     fw_tt, n_rep, fw_lat = simulate_with_replanning(
                         G, origin, dest, model, scaler,
-                        X_test_seq[t_idx], actual, esm, el, ff, delta)
+                        X_test_seq, t_idx, actual, esm, el, ff, delta)
 
                     def red(base):
                         if base > 0 and fw_tt < math.inf and fw_tt > 0:
