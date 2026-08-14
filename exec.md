@@ -1,3 +1,4 @@
+python run_full_framework.py
 
 cd "/d/MSc - Route optimisation for road traffic evasion/Routing App"
 source venv/Scripts/activate
