@@ -49,15 +49,14 @@ RANDOM_SEED  = 42
 
 def _make_5layer():
     from tensorflow.keras.models import Sequential
-    from tensorflow.keras.layers import GRU, Dropout, Dense, Input
-    return Sequential([
-        Input(shape=(SEQUENCE_LEN, N_SENSORS)),
-        GRU(HIDDEN, return_sequences=True),
-        Dropout(DROPOUT),
-        GRU(HIDDEN, return_sequences=False),
-        Dropout(DROPOUT),
-        Dense(N_FUTURE * N_SENSORS),
-    ])
+    from tensorflow.keras.layers import GRU, Dropout, Dense
+    m = Sequential()
+    m.add(GRU(HIDDEN, return_sequences=True, input_shape=(SEQUENCE_LEN, N_SENSORS)))
+    m.add(Dropout(DROPOUT))
+    m.add(GRU(HIDDEN, return_sequences=False))
+    m.add(Dropout(DROPOUT))
+    m.add(Dense(N_FUTURE * N_SENSORS))
+    return m
 
 
 def _make_3layer():
