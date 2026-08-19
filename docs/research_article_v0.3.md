@@ -47,7 +47,7 @@ Three theories bound the artefact. **Time-dependent shortest path (TDSP)** theor
 
 **Classical pathfinding.** Dijkstra (1959) and A* (Hart et al., 1968) remain the operational standard in many computer-aided dispatch stacks (Hagberg et al., 2024). Contraction hierarchies and ALT accelerate static queries but assume weights that do not jump every five minutes (Geisberger et al., 2008; Goldberg & Harrelson, 2005). Gong et al. (2023) and Chen et al. (2021) show that fully online time-dependent planning is still demanding; they do not supply an emergency prediction module.
 
-**Traffic prediction.** Li et al. (2018) released METR-LA and PEMS-BAY and the diffusion convolutional recurrent network (DCRNN). Subsequent surveys document a race among graph neural networks and transformers (Jiang & Luo, 2022; Yin et al., 2022). Hybrid GNN–GRU models can cut MAPE substantially (Sahayaraj et al., 2024; Ma et al., 2023) at higher inference cost. Distillation and “soft GRU” variants aim to keep accuracy while shrinking compute (Wang et al., 2025; Abdullah et al., 2023). For a dispatch loop, Jeong et al. (2021) remains the relevant trade-off: stacked GRU is accurate enough on 15–30 minute highway speeds and cheap enough to call repeatedly.
+**Traffic prediction.** Li et al. (2018) released METR-LA and PEMS-BAY and the diffusion convolutional recurrent network (DCRNN). Subsequent surveys document a race among graph neural networks and transformers (Jiang & Luo, 2022; Yin et al., 2022). Hybrid GNN–GRU models can cut MAPE substantially (Sahayaraj et al., 2024; Ma et al., 2023) at higher inference cost. Distillation and “soft GRU” variants aim to keep accuracy while shrinking compute (Zhang, Gao, Wang, Yiu, & Yin, 2025; Abdullah et al., 2023). For a dispatch loop, Jeong et al. (2021) remains the relevant trade-off: stacked GRU is accurate enough on 15–30 minute highway speeds and cheap enough to call repeatedly.
 
 **Time-dependent routing and integration.** Jaballah et al. (2021) and Yildirim and Catay (2022) operationalise time-varying speeds on real networks. Werner et al. (2022) combine live and predicted times inside TD-A* and obtain large speedups on continental graphs. That paper is the closest routing precedent. It does not train a GRU, it relies on preprocessing that sits uneasily with five-minute weight refresh, and it targets general navigation rather than emergency dispatch with a δ-controller. Zhang et al. (2022) couple incident awareness with adaptive planning for connected vehicles; Zhang, Khalgui and Li (2021) integrate prediction and routing in an Internet-of-Vehicles setting without an emergency threshold policy. Dynamic index maintenance on changing graphs (Ouyang et al., 2020) explains why a lightweight urban TD-A* without heavy preprocessing is attractive when weights update often.
 
@@ -190,7 +190,7 @@ Immediate work is a PEMS-BAY routing graph with the same 900-protocol; sparse-se
 
 ## References
 
-Abdullah, S. M., Periyasamy, M., Kamaludeen, N. A., Towfek, S. K., Marappan, R., Kidambi Raju, S., Alhussan, A. A., & Khafaga, D. S. (2023). Optimizing traffic flow in smart cities: Soft GRU-based recurrent neural networks for enhanced congestion prediction using deep learning. *Sustainability, 15*(7), 5716. https://doi.org/10.3390/su15075716
+Abdullah, S. M., Periyasamy, M., Kamaludeen, N. A., Towfek, S. K., Marappan, R., Kidambi Raju, S., Alharbi, A. H., & Khafaga, D. S. (2023). Optimizing traffic flow in smart cities: Soft GRU-based recurrent neural networks for enhanced congestion prediction using deep learning. *Sustainability, 15*(7), 5949. https://doi.org/10.3390/su15075949
 
 Abuaisha, A., Shen, B., Harabor, D., Stuckey, P., & Wallace, M. (2025). Dynamic replanning for improved public transport routing. *Proceedings of the International Joint Conference on Artificial Intelligence (IJCAI 2025)*. https://www.ijcai.org/proceedings/2025/937
 
@@ -266,7 +266,7 @@ Sasikala, N., et al. (2025). Emergency traffic prioritization system with priori
 
 Shao, Z., Zhang, Z., Wang, F., & Xu, Y. (2022). Pre-training enhanced spatial-temporal graph neural network for multivariate time series forecasting. *Proceedings of KDD*.
 
-Wang, H., Shen, Z., Zhang, Y., et al. (2025). Efficient traffic prediction through spatio-temporal distillation. *arXiv:2501.10459*.
+Zhang, Q., Gao, X., Wang, H., Yiu, S. M., & Yin, H. (2025). Efficient traffic prediction through spatio-temporal distillation. *Proceedings of the AAAI Conference on Artificial Intelligence, 39*(1), 1093–1101. https://doi.org/10.1609/aaai.v39i1.32096
 
 Werner, N., Buchhold, M., Storandt, S., & Wagner, D. (2022). Combining predicted and live traffic with time-dependent A* potentials. *Proceedings of SEA 2022*. https://doi.org/10.4230/LIPIcs.SEA.2022.18
 
