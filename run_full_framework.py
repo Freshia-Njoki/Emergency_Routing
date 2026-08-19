@@ -64,6 +64,7 @@ def _load_pkl(path, default=None):
 
 
 def main(quick=False, skip_sim=False):
+    lines.clear()
     # ── Obj 2 GRU METR-LA ────────────────────────────────────────────────────
     section("OBJECTIVE 2 -- GRU PREDICTION MODEL (METR-LA)")
     hist = _load_pkl(os.path.join(MODEL_DIR, "training_history.pkl"), {})

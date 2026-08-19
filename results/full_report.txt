@@ -19,8 +19,8 @@ OBJECTIVE 2 -- GRU PREDICTION VERIFICATION
   Predicted mph    : 31.9 to 69.6
   Predicted mean   : 63.3 mph
   Sensible values  : YES
-  Scaler check     : 64.38 mph -> 0.2227 -> 60.78 mph
-  Scaler status    : CHECK
+  Scaler check     : 64.38 mph -> scaled mean 0.5273 -> 64.38 mph
+  Scaler status    : CORRECT
 
 =================================================================
 OBJECTIVE 2 -- ROAD NETWORK AND SENSOR MAPPING
@@ -55,7 +55,7 @@ OBJECTIVES 3 & 4 -- RUNNING SIMULATION
 =================================================================
 OBJECTIVE 3 -- THRESHOLD POLICY ANALYSIS
 =================================================================
-  Experiment design: 57 OD pairs x 3 scenarios x 4 delta
+  Experiment design: 75 OD pairs x 3 scenarios x 4 delta
   Total experiments: 900
 
   Delta | Mean Reduction vs B1 | Avg Replannings | Avg Latency
@@ -145,8 +145,8 @@ VISUALISATIONS GENERATED
 RESULTS FILES
 =================================================================
   results/statistical_tests.csv (0 KB)
-  results/evaluation_results.csv (394 KB)
-  results/full_report.txt (0 KB)
+  results/evaluation_results.csv (334 KB)
+  results/full_report.txt (7 KB)
   results/cross_validation_summary.csv (0 KB)
   results/summary_stats.csv (2 KB)
   results/figures/fig3_delta_sensitivity.png (184 KB)
