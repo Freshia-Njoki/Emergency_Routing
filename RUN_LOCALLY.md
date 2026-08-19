@@ -4,7 +4,8 @@
 
 Pull, run, and figure-to-caption map: `docs/FIGURE_AND_TABLE_MAP.md`.  
 Seminar deck (15 minutes, problem → results → limits): `docs/Freshia_Njoki_Obj34_Findings_Presentation.pptx`.  
-Local-run check, 18.6% replace, APA list, appendix files: `docs/SEMINAR_AND_THESIS_QA.md`.
+Local-run check, 18.6% replace, APA list, appendix files: `docs/SEMINAR_AND_THESIS_QA.md`.  
+References older than 5 years, peer distinctions, 20k INSERTs, figures/tables, full appendix: `docs/THESIS_SWEEP_APPENDIX_REFS.md`.
 
 This branch is **not** merged into `main`. Pull it locally, run the scripts, then copy the new tables into Chapters 4–5.
 

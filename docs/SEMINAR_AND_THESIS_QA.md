@@ -77,7 +77,7 @@ Sparse-sensor sensitivity analysis: A systematic study reducing
 **REPLACE WITH**  
 Delete the duplicate. Keep **one** sparse-sensor bullet.
 
-**GET THIS** (the bullet that *increases* 18.6% toward 100%)
+**GET THIS** (the bullet that *increases* 18.6% toward 100% — this is the yellow highlight on page 83)
 
 ```
 Sensor coverage density study: This study demonstrated that 18.6 percent sensor coverage constrained the framework's ability to differentiate routing paths in peak-hour conditions. A systematic study increasing sensor coverage from 18.6 percent to 50, 75, and 100 percent

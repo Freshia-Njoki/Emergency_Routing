@@ -207,7 +207,7 @@ YOLOv8 is a camera object detector. In that paper it spotted vehicles at junctio
 **INSERT**
 
 ```
-Chowdhury et al. (2023) reviewed Internet-of-Things emergency-vehicle services and found that published systems concentrate on identification and green waves rather than predictive path choice. That review supports treating detection and pre-emption papers as related but not equivalent to this framework.
+Chowdhury et al. (2023) proposed a UAV-assisted emergency-vehicle priority scheme and reported about 8% lower simulated response time. The literature they surveyed still concentrated on identification and green waves rather than a learned 15–30 minute path. That paper is related ITS work; it is not this GRU plus Time-Dependent A* loop.
 ```
 
 ### Balloon: “Sounds like I didn’t do much” — paraphrase
