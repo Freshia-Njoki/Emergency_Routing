@@ -63,7 +63,7 @@ def _load_pkl(path, default=None):
         return pickle.load(f)
 
 
-def main(quick=False):
+def main(quick=False, skip_sim=False):
     # ── Obj 2 GRU METR-LA ────────────────────────────────────────────────────
     section("OBJECTIVE 2 -- GRU PREDICTION MODEL (METR-LA)")
     hist = _load_pkl(os.path.join(MODEL_DIR, "training_history.pkl"), {})
@@ -118,10 +118,11 @@ def main(quick=False):
             log(f"  Predicted mph    : {pred_mph.min():.1f} to {pred_mph.max():.1f}")
             log(f"  Predicted mean   : {pred_mph.mean():.1f} mph")
             log(f"  Sensible values  : {'YES' if 15 < pred_mph.mean() < 90 else 'NO'}")
-        v1 = scaler.transform([[64.38] * n_feat])[0, 0] if n_feat > 1 else scaler.transform([[64.38]])[0, 0]
-        inv = scaler.inverse_transform([[v1] * n_feat] if n_feat > 1 else [[v1]])
+        probe = np.full((1, n_feat), 64.38)
+        scaled = scaler.transform(probe)
+        inv = scaler.inverse_transform(scaled)
         v2 = float(np.mean(inv))
-        log(f"  Scaler check     : 64.38 mph -> {v1:.4f} -> {v2:.2f} mph")
+        log(f"  Scaler check     : 64.38 mph -> scaled mean {scaled.mean():.4f} -> {v2:.2f} mph")
         log(f"  Scaler status    : {'CORRECT' if abs(v2 - 64.38) < 1.5 else 'CHECK'}")
     except Exception as e:
         log(f"  [ERROR] {e}")
@@ -172,30 +173,35 @@ def main(quick=False):
     # ── simulation ───────────────────────────────────────────────────────────
     section("OBJECTIVES 3 & 4 -- RUNNING SIMULATION")
     log("  Ground-truth evaluation, sliding-window GRU, path-targeted incidents.")
-    n_flag = ["--quick"] if quick else []
-    env = os.environ.copy()
-    env["PYTHONIOENCODING"] = "utf-8"
-    env["PYTHONUTF8"] = "1"
-    t_start = time.time()
-    result = subprocess.run(
-        [sys.executable, "-m", "src.evaluation.run_simulation", *n_flag],
-        capture_output=True, text=True, encoding="utf-8", errors="replace", env=env,
-    )
-    elapsed = round(time.time() - t_start, 1)
-    if result.returncode != 0:
-        log("  [ERROR] Simulation failed:")
-        log((result.stderr or result.stdout or "")[-2000:])
+    sim_path = os.path.join(SIM_DIR, "simulation_results.csv")
+    if skip_sim and os.path.exists(sim_path):
+        log(f"  Using existing results: {sim_path}")
     else:
-        log(f"  Simulation completed in {elapsed}s")
-        if result.stdout:
-            log(ascii_safe(result.stdout[-1500:]))
+        n_flag = ["--quick"] if quick else []
+        env = os.environ.copy()
+        env["PYTHONIOENCODING"] = "utf-8"
+        env["PYTHONUTF8"] = "1"
+        t_start = time.time()
+        result = subprocess.run(
+            [sys.executable, "-m", "src.evaluation.run_simulation", "--graph", "sensor", *n_flag],
+            capture_output=True, text=True, encoding="utf-8", errors="replace", env=env,
+        )
+        elapsed = round(time.time() - t_start, 1)
+        if result.returncode != 0:
+            log("  [ERROR] Simulation failed:")
+            log((result.stderr or result.stdout or "")[-2000:])
+        else:
+            log(f"  Simulation completed in {elapsed}s")
+            if result.stdout:
+                log(ascii_safe(result.stdout[-1500:]))
 
     # ── Obj 3 ────────────────────────────────────────────────────────────────
     section("OBJECTIVE 3 -- THRESHOLD POLICY ANALYSIS")
     sim_path = os.path.join(SIM_DIR, "simulation_results.csv")
     if os.path.exists(sim_path):
         df = pd.read_csv(sim_path)
-        log(f"  Experiment design: {df['origin'].nunique() if 'origin' in df.columns else '?'} OD pairs x 3 scenarios x 4 delta")
+        n_pairs = df.groupby(["origin", "destination"]).ngroups if {"origin", "destination"} <= set(df.columns) else "?"
+        log(f"  Experiment design: {n_pairs} OD pairs x 3 scenarios x 4 delta")
         log(f"  Total experiments: {len(df)}")
         log()
         log("  Delta | Mean Reduction vs B1 | Avg Replannings | Avg Latency")
@@ -324,4 +330,5 @@ def main(quick=False):
 
 if __name__ == "__main__":
     quick = "--quick" in sys.argv
-    main(quick=quick)
+    skip_sim = "--skip-sim" in sys.argv
+    main(quick=quick, skip_sim=skip_sim)
