@@ -182,8 +182,11 @@ def compute_historical_avg_tt(speed_data: np.ndarray,
 
     hist_avg_tt = {}
     for edge, sensor_idx in edge_sensor_map.items():
+        idx = int(np.array(sensor_idx).flat[0])
+        if idx < 0 or idx >= len(avg_speed_mps):
+            continue
         length_m = edge_lengths_m.get(edge, SENSOR_SPACING_M)
-        hist_avg_tt[edge] = length_m / avg_speed_mps[sensor_idx]
+        hist_avg_tt[edge] = length_m / avg_speed_mps[idx]
     return hist_avg_tt
 
 
@@ -194,8 +197,11 @@ def compute_current_tt(current_speeds_mph: np.ndarray,
     speeds_mps = np.clip(current_speeds_mph * 0.44704, 0.5, None)
     current_tt = {}
     for edge, sensor_idx in edge_sensor_map.items():
+        idx = int(np.array(sensor_idx).flat[0])
+        if idx < 0 or idx >= len(speeds_mps):
+            continue
         length_m = edge_lengths_m.get(edge, SENSOR_SPACING_M)
-        current_tt[edge] = float(length_m) / float(speeds_mps[sensor_idx])
+        current_tt[edge] = float(length_m) / float(speeds_mps[idx])
     return current_tt
 
 
@@ -221,52 +227,29 @@ def _load_sensor_locations(path: Optional[str], n: int):
     
 def load_from_processed(processed_dir: str = 'data/processed'):
     """
-    Loads my existing preprocessed road network files.
-    Normalises edge keys from (u, v, 0) → (u, v)
-    Normalises sensor values from [0] → 0
+    Loads the OSM road network and sensor map, collapsing MultiDiGraph
+    parallel edges to a simple DiGraph with (u, v) keys.
     """
     import pickle
+    from src.routing.travel_times import (
+        to_simple_digraph, normalize_edge_sensor_map,
+    )
 
     graph_path = os.path.join(processed_dir, 'la_road_network.pkl')
     esm_path   = os.path.join(processed_dir, 'edge_sensor_mapping.pkl')
 
-    # ── Load graph ────────────────────────────────────────────────────────────
     with open(graph_path, 'rb') as f:
-        graph = pickle.load(f)
-    print(f"[GraphBuilder] Real graph: "
+        graph = to_simple_digraph(pickle.load(f))
+    print(f"[GraphBuilder] Graph: "
           f"{graph.number_of_nodes()} nodes, {graph.number_of_edges()} edges")
 
-    # ── Load raw edge→sensor map ──────────────────────────────────────────────
     with open(esm_path, 'rb') as f:
-        raw_esm = pickle.load(f)
-
-    # ── Normalise keys and values ─────────────────────────────────────────────
-    # Keys:   (u, v, 0)  →  (u, v)       [OSM multigraph key stripped]
-    # Values: [0]        →  0             [list unwrapped to int]
-    edge_sensor_map = {}
-    for key, val in raw_esm.items():
-
-        # normalise key to 2-tuple
-        if isinstance(key, (tuple, list)) and len(key) >= 2:
-            edge = (int(key[0]), int(key[1]))
-        else:
-            edge = key
-
-        # normalise value to plain int
-        if isinstance(val, (list, tuple)):
-            sensor_idx = int(val[0])
-        elif hasattr(val, 'flat'):          # numpy array
-            sensor_idx = int(val.flat[0])
-        else:
-            sensor_idx = int(val)
-
-        edge_sensor_map[edge] = sensor_idx
+        edge_sensor_map = normalize_edge_sensor_map(pickle.load(f))
 
     print(f"[GraphBuilder] edge_sensor_map: "
           f"{len(edge_sensor_map)} edges, "
-          f"sensor range 0–{max(edge_sensor_map.values())}")
+          f"sensor range 0-{max(edge_sensor_map.values()) if edge_sensor_map else 0}")
 
-    # ── Build edge lengths from graph ─────────────────────────────────────────
     edge_lengths_m = {}
     for u, v, data in graph.edges(data=True):
         edge_lengths_m[(int(u), int(v))] = float(data.get('length', 500.0))

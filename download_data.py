@@ -59,7 +59,7 @@ def main():
         output_path = f"data/raw/{filename}"
         
         if os.path.exists(output_path):
-            print(f"\n✓ {output_path} already exists")
+            print(f"\nOK {output_path} already exists")
             size_mb = os.path.getsize(output_path) / (1024 * 1024)
             print(f"  Size: {size_mb:.2f} MB")
         else:

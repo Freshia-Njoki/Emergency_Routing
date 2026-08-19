@@ -22,6 +22,9 @@ SPEED_UNIT_MPH_TO_MPS = 0.44704
 FREE_FLOW_SPEED_MPS   = 30 * SPEED_UNIT_MPH_TO_MPS   # ~13.4 m/s  (30 mph)
 
 
+from src.utils.console import configure_utf8
+configure_utf8()
+
 def load_model_and_scaler(model_dir: str):
     """
     Loads gru_improved_best.h5 (preferred) or gru_best.h5 from model_dir,
@@ -32,17 +35,23 @@ def load_model_and_scaler(model_dir: str):
     except ImportError:
         raise ImportError("TensorFlow not installed. Run: pip install tensorflow")
 
-    # prefer the improved model if it exists
+    last_err = None
     for fname in ("gru_improved_best.h5", "gru_best.h5"):
         path = os.path.join(model_dir, fname)
-        if os.path.exists(path):
+        if not os.path.exists(path):
+            continue
+        try:
             model = tf.keras.models.load_model(path, compile=False)
             print(f"[GRU Interface] Loaded model: {path}")
             break
+        except Exception as exc:
+            last_err = exc
+            continue
     else:
         raise FileNotFoundError(
             f"No GRU model found in {model_dir}. "
             "Expected gru_best.h5 or gru_improved_best.h5"
+            + (f" ({last_err})" if last_err else "")
         )
 
     scaler_path = os.path.join(model_dir, "scaler.pkl")
