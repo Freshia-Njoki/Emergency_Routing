@@ -94,7 +94,7 @@ def main(quick=False):
         X_test = data["X_test"]
         n_feat = int(getattr(scaler, "n_features_in_", 1))
         model = None
-        for fname in ("gru_improved_best.h5", "gru_best.h5"):
+        for fname in ("gru_improved_best.keras", "gru_improved_best.h5", "gru_best.h5"):
             path = os.path.join(MODEL_DIR, fname)
             if not os.path.exists(path):
                 continue
@@ -130,12 +130,14 @@ def main(quick=False):
     section("OBJECTIVE 2 -- ROAD NETWORK AND SENSOR MAPPING")
     try:
         from src.evaluation.simulation_core import load_graph_and_costs
-        G, esm, weights, ff_mph, lengths, ff_tt = load_graph_and_costs(PROC_DIR, remap=True)
+        G, esm, weights, ff_mph, lengths, ff_tt = load_graph_and_costs(
+            PROC_DIR, remap=True, graph_mode="sensor"
+        )
         n_direct = sum(1 for w in weights.values() if len(w) == 1)
         n_interp = sum(1 for w in weights.values() if len(w) > 1)
         coverage = 100.0 * (n_direct + n_interp) / max(G.number_of_edges(), 1)
-        log("  Graph type       : Directed (DiGraph) via OSMnx")
-        log("  Study area       : Downtown Los Angeles, California")
+        log("  Graph type       : METR-LA sensor adjacency (DCRNN), not downtown OSM")
+        log("  Study area       : Los Angeles County loop detectors")
         log(f"  Nodes            : {G.number_of_nodes()}")
         log(f"  Directed edges   : {G.number_of_edges()}")
         log(f"  Direct-mapped    : {n_direct}")
@@ -287,6 +289,9 @@ def main(quick=False):
     log("  5. Sliding-window + remaining-time threshold (T_old updates as the vehicle moves)")
     log("  6. Windows cp1252-safe logging (no UnicodeEncodeError)")
     log("  7. Scaler fitted on the training split only")
+    log("  8. METR-LA sensor graph (100% instrumented) as the default routing network")
+    log("  9. Nowcast+forecast fusion and incident persistence so replanning can fire")
+    log("  10. B3 is a true reactive replan (current snapshot), not a copy of Dijkstra")
 
     log()
     log(SEP)

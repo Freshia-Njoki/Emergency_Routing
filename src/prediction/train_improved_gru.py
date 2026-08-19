@@ -101,7 +101,7 @@ def main():
             monitor="val_loss", factor=0.5, patience=5, min_lr=1e-6, verbose=1
         ),
         keras.callbacks.ModelCheckpoint(
-            "models/saved/gru_improved_best.h5",
+            "models/saved/gru_improved_best.keras",
             monitor="val_loss", save_best_only=True, verbose=1,
         ),
     ]
@@ -115,7 +115,12 @@ def main():
         verbose=1,
     )
 
-    model.save("models/saved/gru_improved_final.h5")
+    model.save("models/saved/gru_improved_final.keras")
+    try:
+        model.save("models/saved/gru_improved_best.h5")
+        model.save("models/saved/gru_improved_final.h5")
+    except Exception as exc:
+        safe_print(f"[WARN] h5 save skipped: {exc}")
     with open("models/saved/training_history.pkl", "wb") as f:
         pickle.dump(history.history, f)
 

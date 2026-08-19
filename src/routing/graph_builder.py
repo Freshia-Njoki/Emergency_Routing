@@ -58,7 +58,11 @@ def build_graph_from_adjacency(adj_mx_path: str,
     # ── load adjacency matrix ─────────────────────────────────────────────────
     if adj_mx_path.endswith('.pkl'):
         with open(adj_mx_path, 'rb') as f:
-            data = pickle.load(f)
+            try:
+                data = pickle.load(f)
+            except Exception:
+                f.seek(0)
+                data = pickle.load(f, encoding='latin1')
         # DCRNN format: (sensor_ids, sensor_id_to_ind, adj_mx)
         if isinstance(data, (list, tuple)) and len(data) == 3:
             sensor_ids, _, adj_mx = data

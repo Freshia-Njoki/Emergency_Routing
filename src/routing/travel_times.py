@@ -309,12 +309,17 @@ def free_flow_tt_seconds(edge_lengths: dict, free_flow_mph: dict) -> dict:
 def sensors_on_path(
     path: Sequence[int],
     weights: dict,
-    top_n: int = 8,
+    top_n: Optional[int] = None,
 ) -> List[int]:
-    """Sensors that most strongly influence the given node path."""
+    """Sensors that most strongly influence the given node path.
+
+    top_n=None returns every sensor on the path (used for corridor incidents).
+    """
     scores: Dict[int, float] = {}
     for i in range(len(path) - 1):
         for sidx, w in weights.get((int(path[i]), int(path[i + 1])), []):
             scores[int(sidx)] = scores.get(int(sidx), 0.0) + float(w)
     ranked = sorted(scores, key=lambda s: scores[s], reverse=True)
-    return ranked[:top_n]
+    if top_n is None:
+        return ranked
+    return ranked[: int(top_n)]

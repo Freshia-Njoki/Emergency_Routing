@@ -19,6 +19,25 @@ import pandas as pd
 from sklearn.preprocessing import StandardScaler
 
 
+def load_metr_la_frame(path: str = "data/raw/metr-la.h5") -> pd.DataFrame:
+    """Load METR-LA whether stored as a pandas table or a raw h5py frame."""
+    try:
+        df = pd.read_hdf(path)
+        if getattr(df, "shape", (0, 0))[1] >= 100:
+            return df
+    except Exception:
+        pass
+    import h5py
+    with h5py.File(path, "r") as f:
+        if "df/block0_values" in f:
+            arr = f["df/block0_values"][:]
+        else:
+            key = list(f.keys())[0]
+            node = f[key]
+            arr = node["block0_values"][:] if "block0_values" in node else node[()]
+    return pd.DataFrame(np.asarray(arr, dtype=np.float32))
+
+
 class TrafficDataPreprocessor:
     def __init__(self, sequence_length=12, horizon=6):
         self.sequence_length = sequence_length
@@ -107,7 +126,7 @@ if __name__ == "__main__":
     print("\n" + "=" * 60)
     print("PREPROCESSING METR-LA")
     print("=" * 60)
-    df = pd.read_hdf("data/raw/metr-la.h5")
+    df = load_metr_la_frame("data/raw/metr-la.h5")
     print(f"Loaded: {df.shape}")
     preprocessor = TrafficDataPreprocessor(sequence_length=12, horizon=6)
     train, val, test = preprocessor.prepare_data(df)

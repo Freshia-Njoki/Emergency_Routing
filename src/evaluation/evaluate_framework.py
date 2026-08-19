@@ -54,6 +54,7 @@ def run_evaluation(
     sliding=True,
     n_od=75,
     remap=True,
+    graph_mode="sensor",
 ):
     os.makedirs(results_dir, exist_ok=True)
     processed = os.path.join(data_dir, "processed")
@@ -71,7 +72,9 @@ def run_evaluation(
     scaler = load_scaler(model_dir, processed)
 
     safe_print("[Phase 2] Building road graph...")
-    G, esm, weights, ff_mph, lengths, ff_tt = load_graph_and_costs(processed, remap=remap)
+    G, esm, weights, ff_mph, lengths, ff_tt = load_graph_and_costs(
+        processed, remap=remap, graph_mode=graph_mode
+    )
 
     safe_print("[Phase 3] Loading speed data (inverse-scaled mph)...")
     X_test_seq, X_last, y_test_mph, hist_mph, _ = load_test_arrays(processed, scaler)
@@ -117,6 +120,7 @@ if __name__ == "__main__":
     p.add_argument("--quick", action="store_true")
     p.add_argument("--n-od", type=int, default=75)
     p.add_argument("--no-remap", action="store_true")
+    p.add_argument("--graph", choices=["sensor", "osm"], default="sensor")
     args = p.parse_args()
     run_evaluation(
         model_dir=args.model_dir,
@@ -127,4 +131,5 @@ if __name__ == "__main__":
         sliding=True,
         n_od=15 if args.quick else args.n_od,
         remap=not args.no_remap,
+        graph_mode=args.graph,
     )

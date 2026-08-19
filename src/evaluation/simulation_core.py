@@ -48,7 +48,10 @@ def load_keras_model(model_dir: str, n_sensors: int = N_SENSORS_LA):
     import tensorflow as tf
 
     dummy = np.zeros((1, SEQUENCE_LEN, n_sensors), dtype=np.float32)
-    for fname in ("gru_improved_best.h5", "gru_best.h5", "gru_traffic_model.h5"):
+    for fname in (
+        "gru_improved_best.keras", "gru_improved_best.h5",
+        "gru_best.keras", "gru_best.h5", "gru_traffic_model.h5",
+    ):
         path = os.path.join(model_dir, fname)
         if not os.path.exists(path):
             continue
@@ -124,6 +127,61 @@ def scale_speed(scaler, values: np.ndarray) -> np.ndarray:
     return scaler.transform(arr.reshape(-1, 1)).reshape(shape)
 
 
+def fuse_forecast(
+    pred_mph: np.ndarray,
+    current_mph: np.ndarray,
+    persist_idx=None,
+    persist_row=None,
+    n_nowcast: int = 1,
+) -> np.ndarray:
+    """Blend a current speed snapshot into the GRU horizon.
+
+    Slot 0 (and optionally a half-blend of slot 1) uses what the vehicle
+    can actually observe *now*.  Later slots keep the GRU forecast.
+    If an incident has been observed, affected sensors are clamped to the
+    observed slow speed for the whole horizon (persistence nowcast).
+    """
+    out = np.asarray(pred_mph, dtype=np.float64).copy()
+    cur = np.asarray(current_mph, dtype=np.float64).reshape(-1)
+    n_sensors = min(out.shape[-1], cur.shape[0])
+    n = min(int(n_nowcast), out.shape[0])
+    for i in range(n):
+        out[i, :n_sensors] = cur[:n_sensors]
+    if out.shape[0] > n:
+        out[n, :n_sensors] = 0.5 * cur[:n_sensors] + 0.5 * out[n, :n_sensors]
+    if persist_idx is not None and persist_row is not None:
+        idx = np.asarray(persist_idx, dtype=int)
+        idx = idx[(idx >= 0) & (idx < n_sensors)]
+        if idx.size:
+            obs = np.asarray(persist_row, dtype=np.float64).reshape(-1)
+            out[:, idx] = np.minimum(out[:, idx], obs[idx])
+    return np.clip(out, 1.0, 90.0)
+
+
+def remaining_deteriorated(T_new: float, T_old: float, delta: float) -> bool:
+    """Thesis Section 3.8: (T_new - T_old) / T_old > delta."""
+    return T_old > 1.0 and (T_new - T_old) / T_old > float(delta)
+
+
+def should_accept_replan(
+    T_old: float,
+    T_new: float,
+    T_alt: float,
+    delta: float,
+    paths_differ: bool,
+) -> bool:
+    """Take the new TD-A* path if the current plan got worse *or* a
+    substantially better alternative appeared (opportunity replan)."""
+    if not paths_differ or T_alt is None:
+        return False
+    deteriorated = remaining_deteriorated(T_new, T_old, delta)
+    if deteriorated and T_alt < T_new - 1.0:
+        return True
+    if T_old > 1.0 and (T_old - T_alt) / T_old > float(delta):
+        return True
+    return False
+
+
 def gru_predict_mph(model, scaler, x_window_scaled: np.ndarray) -> np.ndarray:
     """
     x_window_scaled: (SEQUENCE_LEN, N) scaled
@@ -146,8 +204,44 @@ def gru_predict_mph(model, scaler, x_window_scaled: np.ndarray) -> np.ndarray:
     return np.clip(pred.astype(np.float64), 1.0, 90.0)
 
 
-def load_graph_and_costs(processed_dir: str, n_sensors: int = N_SENSORS_LA, remap: bool = True):
-    import networkx as nx  # noqa: F401
+def load_graph_and_costs(
+    processed_dir: str,
+    n_sensors: int = N_SENSORS_LA,
+    remap: bool = True,
+    graph_mode: str = "sensor",
+):
+    """
+    graph_mode:
+      'sensor' — METR-LA detector adjacency (207 nodes, every edge instrumented)
+      'osm'    — downtown OSM graph with interpolated speeds
+    """
+    adj_path = os.path.join("data", "raw", "sensor_graph", "adj_mx.pkl")
+    loc_path = os.path.join("data", "raw", "sensor_graph", "graph_sensor_locations.csv")
+
+    if graph_mode == "sensor":
+        if not os.path.exists(adj_path):
+            try:
+                from download_data import download_sensor_graph
+                download_sensor_graph()
+            except Exception as exc:
+                safe_print(f"  [WARN] Could not auto-download sensor graph: {exc}")
+    if graph_mode == "sensor" and os.path.exists(adj_path):
+        from src.routing.graph_builder import build_graph_from_adjacency
+        G, esm, lengths = build_graph_from_adjacency(
+            adj_path, loc_path if os.path.exists(loc_path) else None, threshold=0.1
+        )
+        for u, v, data in G.edges(data=True):
+            data.setdefault("highway", "motorway")
+            data.setdefault("maxspeed", "65 mph")
+        safe_print(
+            f"  [OK] METR-LA sensor graph: {G.number_of_nodes()} nodes, "
+            f"{G.number_of_edges()} edges, {len(esm)} fully instrumented"
+        )
+        weights, ff_mph, lengths = build_interpolator(
+            G, esm, n_sensors=n_sensors, max_dist_m=2500.0
+        )
+        ff_tt = free_flow_tt_seconds(lengths, ff_mph)
+        return G, esm, weights, ff_mph, lengths, ff_tt
 
     net_path = os.path.join(processed_dir, "la_road_network.pkl")
     esm_path = os.path.join(processed_dir, "edge_sensor_mapping.pkl")
@@ -315,17 +409,64 @@ def simulate_path(
     t_inc: float = None,
     actual_inc: np.ndarray = None,
 ) -> float:
-    """Traverse `path`. After wall-clock t_inc, switch to incident speeds."""
+    """Traverse `path`. After wall-clock t_inc, switch to incident speeds.
+
+    Timeline stays aligned with the original 5-minute slots (do not restart
+    the slot index at t_inc — that used to sample the wrong future).
+    """
     elapsed = 0.0
     for i in range(len(path) - 1):
         speeds = actual_mph
-        t_used = elapsed
         if actual_inc is not None and t_inc is not None and elapsed >= t_inc:
             speeds = actual_inc
-            t_used = elapsed - t_inc
         elapsed += actual_edge_seconds(
-            path[i], path[i + 1], t_used, speeds, weights, lengths, ff_mph
+            path[i], path[i + 1], elapsed, speeds, weights, lengths, ff_mph
         )
+    return elapsed
+
+
+def simulate_reactive(
+    G,
+    origin,
+    dest,
+    curr_tt,
+    ff_tt,
+    actual_mph,
+    weights,
+    lengths,
+    ff_mph,
+    t_inc: float = None,
+    actual_inc: np.ndarray = None,
+) -> float:
+    """B3: reactive A* — same as Dijkstra until current speeds change,
+    then one replan on the latest snapshot (no GRU horizon)."""
+    path, _ = astar_route(G, origin, dest, curr_tt, ff_tt)
+    elapsed = 0.0
+    current = origin
+    replanned = False
+    while current != dest:
+        if (
+            (not replanned)
+            and actual_inc is not None
+            and t_inc is not None
+            and elapsed >= t_inc
+        ):
+            inc_tt = tt_from_speeds(actual_inc[0], weights, lengths, ff_mph)
+            new_path, _ = astar_route(G, current, dest, inc_tt, ff_tt)
+            if len(new_path) >= 2:
+                path = new_path
+            replanned = True
+        if len(path) < 2:
+            break
+        nxt = path[1]
+        speeds = actual_mph
+        if actual_inc is not None and t_inc is not None and elapsed >= t_inc:
+            speeds = actual_inc
+        elapsed += actual_edge_seconds(
+            current, nxt, elapsed, speeds, weights, lengths, ff_mph
+        )
+        current = nxt
+        path = path[1:]
     return elapsed
 
 
@@ -336,11 +477,14 @@ def tt_from_speeds(speeds_mph, weights, lengths, ff_mph) -> dict:
 
 # ── framework journey with sliding window + threshold ─────────────────────────
 
-def _inject_into_window(x_scaled, scaler, observed_mph_row, affected, severity=None):
-    """Copy already-observed (possibly incident) mph into the last 3 window steps."""
+def _inject_into_window(x_scaled, scaler, observed_mph_row, affected, n_steps=6):
+    """Copy already-observed (possibly incident) mph into the last n window steps."""
     window = x_scaled.copy()
     mph = inverse_speed(scaler, window)
-    mph[-3:, affected] = np.asarray(observed_mph_row)[affected]
+    k = min(int(n_steps), mph.shape[0])
+    idx = np.asarray(affected, dtype=int)
+    row = np.asarray(observed_mph_row)
+    mph[-k:, idx] = row[idx]
     return scale_speed(scaler, mph)
 
 
@@ -374,10 +518,17 @@ def simulate_framework(
 
     Predictions refresh when a 5-minute slot advances or when an incident
     becomes visible in the observation window (sliding window, 3.8).
+
+    Costs fuse the current snapshot (nowcast) with the GRU horizon, and an
+    observed incident is persisted on the affected sensors so the controller
+    can actually see the slowdown.  A replan is accepted if the current path
+    deteriorated by delta *or* a new TD-A* path is better by delta.
+
     Journey time is always accumulated from actual_mph (ground truth).
     """
     affected = np.asarray(affected if affected is not None else [], dtype=int)
     pred_cache = {}
+    current_obs = np.asarray(actual_mph[0], dtype=np.float64).copy()
 
     def predict(window):
         key = window.tobytes()
@@ -385,8 +536,14 @@ def simulate_framework(
             pred_cache[key] = gru_predict_mph(model, scaler, window)
         return pred_cache[key]
 
+    def fused(window, persist: bool):
+        pred = predict(window)
+        persist_idx = affected if persist and affected.size else None
+        persist_row = current_obs if persist_idx is not None else None
+        return fuse_forecast(pred, current_obs, persist_idx, persist_row)
+
     window = x_window_scaled.copy()
-    pred = predict(window)
+    pred = fused(window, persist=False)
     pred_tt = tt_from_speeds(pred, weights, lengths, ff_mph)
     path, lat = astar_route(G, origin, dest, pred_tt, ff_tt)
     lats = [lat]
@@ -400,7 +557,7 @@ def simulate_framework(
 
     def live_speeds(t):
         if actual_inc is not None and t_inc is not None and t >= t_inc:
-            return actual_inc, t - t_inc
+            return actual_inc, t
         return actual_mph, t
 
     while current != dest:
@@ -408,6 +565,8 @@ def simulate_framework(
             break
         nxt = path[1]
         speeds_now, t_used = live_speeds(elapsed)
+        slot_i = min(int(t_used // STEP_S), max(speeds_now.shape[0] - 1, 0))
+        current_obs = np.asarray(speeds_now[slot_i], dtype=np.float64)
         elapsed += actual_edge_seconds(
             current, nxt, t_used, speeds_now, weights, lengths, ff_mph
         )
@@ -427,36 +586,40 @@ def simulate_framework(
             should_refresh = True
             incident_revealed = True
             row = actual_inc[0] if actual_inc is not None else actual_mph[0]
+            current_obs = np.asarray(row, dtype=np.float64)
             window = _inject_into_window(
-                x_window_scaled, scaler, row, affected, severity,
+                x_window_scaled, scaler, row, affected, n_steps=6,
             )
         elif slot > last_slot and x_future_scaled is not None:
             nxt_idx = min(slot, len(x_future_scaled) - 1)
             window = x_future_scaled[nxt_idx]
             if incident_revealed and affected.size:
                 row = actual_inc[0] if actual_inc is not None else actual_mph[0]
+                current_obs = np.asarray(row, dtype=np.float64)
                 window = _inject_into_window(
-                    window, scaler, row, affected, severity,
+                    window, scaler, row, affected, n_steps=6,
                 )
 
         if should_refresh:
             last_slot = slot
-            pred_new = predict(window)
+            pred_new = fused(window, persist=incident_revealed)
             pred_tt_new = tt_from_speeds(pred_new, weights, lengths, ff_mph)
             T_new = remaining_on_path(path, pred_tt_new, ff_tt, elapsed)
-            if T_old > 1.0 and (T_new - T_old) / T_old > delta:
-                new_path, replan_lat = astar_route(G, current, dest, pred_tt_new, ff_tt)
-                if len(new_path) >= 2:
-                    path = new_path
-                    n_rep += 1
-                    lats.append(replan_lat)
-                    pred_tt = pred_tt_new
-                    T_old = remaining_on_path(path, pred_tt, ff_tt, elapsed)
-            else:
-                # Keep T_old as remaining on current path under latest costs
-                # so the next check is against the updated forecast.
-                T_old = remaining_on_path(path, pred_tt, ff_tt, elapsed)
+            new_path, replan_lat = astar_route(G, current, dest, pred_tt_new, ff_tt)
+            T_alt = (
+                remaining_on_path(new_path, pred_tt_new, ff_tt, elapsed)
+                if new_path and len(new_path) >= 2
+                else T_new
+            )
+            paths_differ = bool(new_path) and new_path != path
+            if should_accept_replan(T_old, T_new, T_alt, delta, paths_differ):
+                path = new_path
+                n_rep += 1
+                lats.append(replan_lat)
                 pred_tt = pred_tt_new
+                T_old = remaining_on_path(path, pred_tt, ff_tt, elapsed)
+            else:
+                T_old = remaining_on_path(path, pred_tt, ff_tt, elapsed)
         else:
             T_old = remaining_on_path(path, pred_tt, ff_tt, elapsed)
 
@@ -465,14 +628,16 @@ def simulate_framework(
 
 # ── OD pairs / scenarios ──────────────────────────────────────────────────────
 
-def make_od_pairs(G, n_pairs: int, min_hops: int = 8):
+def make_od_pairs(G, n_pairs: int, min_hops: int = 8, ff_tt=None, min_tt_s: float = 300.0):
+    """Sample OD pairs long enough to span at least one 5-minute prediction slot."""
     import networkx as nx
 
     rng = np.random.default_rng(RANDOM_SEED)
     nodes = list(G.nodes())
     pairs = []
     attempts = 0
-    while len(pairs) < n_pairs and attempts < n_pairs * 80:
+    limit = n_pairs * 200
+    while len(pairs) < n_pairs and attempts < limit:
         attempts += 1
         o = int(nodes[int(rng.integers(0, len(nodes)))])
         d = int(nodes[int(rng.integers(0, len(nodes)))])
@@ -480,18 +645,25 @@ def make_od_pairs(G, n_pairs: int, min_hops: int = 8):
             continue
         try:
             hops = nx.shortest_path_length(G, o, d)
+            if hops < min_hops:
+                continue
+            if ff_tt is not None and min_tt_s:
+                sp = nx.shortest_path(G, o, d)
+                if remaining_on_path(sp, ff_tt, ff_tt, 0.0) < min_tt_s:
+                    continue
         except Exception:
             continue
-        if hops >= min_hops:
-            pairs.append((o, d))
-    # de-duplicate while preserving order
+        pairs.append((o, d))
     seen = set()
     uniq = []
     for p in pairs:
         if p not in seen:
             seen.add(p)
             uniq.append(p)
-    safe_print(f"  [OK] Generated {len(uniq)} OD pairs (min hops={min_hops})")
+    safe_print(
+        f"  [OK] Generated {len(uniq)} OD pairs (min hops={min_hops}, "
+        f"min free-flow {min_tt_s:.0f}s)"
+    )
     return uniq[:n_pairs]
 
 
@@ -507,8 +679,20 @@ def pick_test_indices(y_test_mph, scenario, n=8):
     return rng.choice(cands, size=min(n, len(cands)), replace=False).astype(int).tolist()
 
 
-def apply_path_incident(actual_mph, path, weights, severity=0.4, start_slot=1, n_sensors_hit=6):
-    """Drop speeds on sensors that govern the Dijkstra path, from start_slot onward."""
+def apply_path_incident(
+    actual_mph,
+    path,
+    weights,
+    severity=0.60,
+    start_slot=1,
+    n_sensors_hit=None,
+):
+    """Corridor incident: 40% speed drop (severity=0.60) on path sensors.
+
+    Thesis Section 3.9 specifies a 40% mid-journey speed reduction.  Applying
+    it to the sensors that govern the current Dijkstra route (rather than a
+    random 15% of the whole network) is what makes avoidance possible.
+    """
     out = actual_mph.copy()
     affected = sensors_on_path(path, weights, top_n=n_sensors_hit)
     if not affected:
@@ -516,7 +700,7 @@ def apply_path_incident(actual_mph, path, weights, severity=0.4, start_slot=1, n
         rng = np.random.default_rng(RANDOM_SEED)
         affected = rng.choice(n, size=max(1, int(n * 0.15)), replace=False).tolist()
     aff = np.array(affected, dtype=int)
-    out[start_slot:, aff] *= severity
+    out[start_slot:, aff] *= float(severity)
     return out, aff
 
 
@@ -538,10 +722,11 @@ def run_experiments(
     deltas: Sequence[float] = (0.05, 0.10, 0.15, 0.20),
     scenarios: Sequence[str] = ("peak_hour", "off_peak", "incident"),
     min_hops: int = 8,
-    incident_severity: float = 0.4,
+    incident_severity: float = 0.60,
+    min_tt_s: float = 300.0,
 ):
     configure_utf8()
-    pairs = make_od_pairs(G, n_od, min_hops=min_hops)
+    pairs = make_od_pairs(G, n_od, min_hops=min_hops, ff_tt=ff_tt, min_tt_s=min_tt_s)
     hist_tt = tt_from_speeds(hist_mph, weights, lengths, ff_mph)
     rng = np.random.default_rng(RANDOM_SEED)
     rows = []
@@ -567,9 +752,10 @@ def run_experiments(
             t_inc = None
             if scenario == "incident":
                 actual_inc, affected = apply_path_incident(
-                    actual, b1_path, weights, severity=incident_severity, start_slot=0
+                    actual, b1_path, weights, severity=incident_severity,
+                    start_slot=0, n_sensors_hit=None,
                 )
-                t_inc = max(15.0, 0.25 * remaining_on_path(b1_path, curr_tt, ff_tt, 0.0))
+                t_inc = max(20.0, 0.20 * remaining_on_path(b1_path, curr_tt, ff_tt, 0.0))
 
             oracle_src = actual_inc if actual_inc is not None else actual
             oracle_tt = tt_from_speeds(oracle_src, weights, lengths, ff_mph)
@@ -579,12 +765,14 @@ def run_experiments(
             gru_ms_acc.append(gru_ms)
 
             b2_path, b2_lat = astar_route(G, origin, dest, hist_tt, ff_tt)
-            b3_path = b1_path
             b4_path, b4_lat = astar_route(G, origin, dest, oracle_tt, ff_tt)
 
             b1_tt = simulate_path(b1_path, actual, weights, lengths, ff_mph, t_inc, actual_inc)
             b2_tt = simulate_path(b2_path, actual, weights, lengths, ff_mph, t_inc, actual_inc)
-            b3_tt = simulate_path(b3_path, actual, weights, lengths, ff_mph, t_inc, actual_inc)
+            b3_tt = simulate_reactive(
+                G, origin, dest, curr_tt, ff_tt, actual, weights, lengths, ff_mph,
+                t_inc, actual_inc,
+            )
             b4_tt = simulate_path(b4_path, actual, weights, lengths, ff_mph, t_inc, actual_inc)
 
             # future scaled windows for sliding (next test samples, if any)

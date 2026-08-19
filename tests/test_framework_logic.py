@@ -22,7 +22,10 @@ from src.routing.travel_times import (
 from src.evaluation.simulation_core import (
     apply_path_incident,
     astar_route,
+    fuse_forecast,
+    remaining_deteriorated,
     remaining_on_path,
+    should_accept_replan,
     simulate_path,
     tt_from_speeds,
 )
@@ -109,6 +112,35 @@ class RoutingLogicTests(unittest.TestCase):
         # Old bug: T_old stayed equal to the original full journey time, so
         # (T_new - T_old)/T_old was always negative and never replanned.
         self.assertGreater(full - rest, 1.0)
+
+
+class ControllerPolicyTests(unittest.TestCase):
+    def test_deterioration_threshold(self):
+        self.assertTrue(remaining_deteriorated(120.0, 100.0, 0.10))
+        self.assertFalse(remaining_deteriorated(109.0, 100.0, 0.10))
+
+    def test_accept_replan_on_better_alternative(self):
+        # Current path did not get much worse, but a new path is 15% faster.
+        self.assertTrue(should_accept_replan(100.0, 102.0, 80.0, 0.10, True))
+        self.assertFalse(should_accept_replan(100.0, 102.0, 80.0, 0.10, False))
+
+    def test_accept_replan_only_if_alt_beats_deteriorated_path(self):
+        # Path got 20% worse; alt is still worse than staying -> reject.
+        self.assertFalse(should_accept_replan(100.0, 130.0, 140.0, 0.10, True))
+        # Alt improves on the deteriorated remaining time -> accept.
+        self.assertTrue(should_accept_replan(100.0, 130.0, 110.0, 0.10, True))
+
+    def test_fuse_forecast_nowcast_and_persistence(self):
+        pred = np.full((6, 3), 50.0)
+        current = np.array([40.0, 40.0, 40.0])
+        fused = fuse_forecast(pred, current, persist_idx=None, persist_row=None)
+        np.testing.assert_allclose(fused[0], current)
+        self.assertGreater(fused[-1, 0], 45.0)
+        incident = np.array([20.0, 40.0, 40.0])
+        persisted = fuse_forecast(
+            pred, current, persist_idx=[0], persist_row=incident
+        )
+        self.assertTrue(np.all(persisted[:, 0] <= 20.0 + 1e-9))
 
 
 if __name__ == "__main__":

@@ -3,6 +3,10 @@
 Branch: `cursor/improve-ev-routing-framework-c48b`  
 This branch is **not** merged into `main`. Pull it locally, run the scripts, then copy the new tables into Chapters 4–5.
 
+## Recommendation: do **not** train both datasets as one model
+
+METR-LA has **207** sensors and PEMS-BAY has **325**. A multivariate GRU cannot take both as a single input tensor. Chapter 3 is correct: train METR-LA for routing, and train a **separate** PEMS-BAY model only for cross-dataset MAE/RMSE (Section 4.3.4). `train_joint_per_sensor.py` exists as an optional experiment; it is **not** the routing model.
+
 ## Why the old numbers contradicted each other
 
 Two evaluators were measuring different things:
@@ -10,22 +14,22 @@ Two evaluators were measuring different things:
 | Script | What it actually measured | What you saw |
 |---|---|---|
 | `evaluate_framework.py --sliding-window` | Framework time from **GRU-predicted** costs vs baselines from **scaled** npz values treated as mph | ~78% “reduction”, identical across every delta |
-| `run_simulation.py` | Ground-truth traversal, but 81% of edges used a constant 30 mph, incidents were random, `T_old` never updated | ~0% vs Dijkstra, 0 replannings, ANOVA p = 1.000 |
+| `run_simulation.py` | Ground-truth traversal, but 81% of OSM edges used a constant 30 mph, incidents were random, `T_old` never updated | ~0% vs Dijkstra, 0 replannings, ANOVA p = 1.000 |
 
-Chapter 4 Table 4.5 (framework ~123 s vs baselines ~588 s) came from the first script. Table 4.6 (+0.17% incident) came from the second. Both cannot be true at once.
-
-Downtown journeys also finish in **under five minutes**, so a 5-minute incident slot never arrived during the trip. Replanning could not fire.
+Chapter 4 Table 4.5 (framework ~123 s vs baselines ~588 s) came from the first script. Table 4.6 (+0.17% incident) came from the second. Both cannot be true at once. **Drop the 78% / 123 s vs 588 s table.**
 
 ## What this branch changes (aligned with Chapters 1–3)
 
 1. **Ground-truth evaluation everywhere** — Dijkstra, Static A*, Reactive A*, Oracle, and the framework are all traversed with actual future speeds (Section 3.9).
-2. **Train-only StandardScaler** — matches Section 3.4; stops scaled values being used as mph.
-3. **Thesis GRU** — `train_improved_gru.py` is now the specified 2×64, dropout 0.2, MSE, patience 10. The old 3-layer/128 network contradicted Section 3.6.
-4. **Major-road sensor mapping + IDW interpolation** — unmapped edges inherit nearby detector speeds instead of fake 30 mph free-flow (this is what caused peak-hour *detours onto ‘empty’ streets* in Section 4.6.1).
-5. **Incidents on the Dijkstra path**, starting after 25% of B1 travel time, not after 300 s and not on random sensors.
-6. **Threshold uses remaining time** `T_old` on the current path (Section 3.8). The previous controller compared remaining time to the *original full-journey* time, so `(T_new − T_old)/T_old` was always negative and never replanned.
-7. **Windows cp1252-safe logging** — the `UnicodeEncodeError` on `→` and `≈` is gone (`PYTHONUTF8=1` plus ASCII fallbacks).
-8. **Joint training of both datasets** — a multivariate net cannot have 207 and 325 inputs. `train_joint_per_sensor.py` trains one shared per-detector GRU on METR-LA **and** PEMS-BAY together. Routing still uses the METR-LA multivariate model (Section 3.6). PEMS-BAY remains the cross-dataset check (Section 4.3.4).
+2. **Train-only StandardScaler** — matches Section 3.4.
+3. **Thesis GRU** — 2×64, dropout 0.2, MSE, patience 10 (`train_improved_gru.py`).
+4. **Default routing graph = METR-LA detector adjacency** (207 nodes, 100% instrumented). Downtown OSM (397 nodes / 18.6% mapped) is still available with `--graph osm`, but the sensor graph is the accurate choice for this dataset. Update Chapter 3 if you adopt it.
+5. **Nowcast + GRU forecast fusion** — slot 0 of the horizon is the current snapshot; later slots are GRU. Stops peak-hour detours caused by a slightly wrong first-slot forecast.
+6. **Incident persistence** — once a corridor slowdown is observed, those sensors stay slow in the predicted costs so the threshold controller can fire (Objective 3).
+7. **Replan if the current path deteriorated by δ *or* a new TD-A* path is better by δ** (opportunity replan). Update Section 3.8 if you keep this.
+8. **B3 is reactive A*** — one replan on the current snapshot when the incident starts; it is no longer a copy of Dijkstra.
+9. **Incidents on the Dijkstra corridor**, 40% speed drop (`severity=0.60`), starting after 20% of B1 travel time.
+10. **Windows cp1252-safe logging**.
 
 ## Commands to run on your machine (Git Bash)
 
@@ -40,38 +44,32 @@ git pull origin cursor/improve-ev-routing-framework-c48b
 export PYTHONUTF8=1
 export PYTHONIOENCODING=utf-8
 
-# 1) Re-build sequences with a train-only scaler (overwrites training_data.npz + scaler.pkl)
+# Sensor adjacency (skip if data/raw/sensor_graph/adj_mx.pkl is already there)
+python -c "from download_data import download_sensor_graph; download_sensor_graph()"
+
+# 1) Re-build sequences with a train-only scaler
 python -m src.prediction.data_preprocessing
 
 # 2) Retrain the Chapter-3 GRU  (10–30 min on CPU)
 python -m src.prediction.train_improved_gru
 
-# 3) Optional: train one GRU on METR-LA + PEMS-BAY sensors together
-python -m src.prediction.train_joint_per_sensor
+# 3) Quick smoke test (~15 OD pairs)
+python -m src.evaluation.run_simulation --quick --graph sensor
 
-# 4) Map sensors onto motorway/primary edges
-python -m src.routing.map_sensors_to_roads
+# 4) Full 900 experiments (75 OD x 3 scenarios x 4 delta)
+python -m src.evaluation.evaluate_framework --results-dir results/sliding --graph sensor
+python -m src.evaluation.run_simulation --graph sensor
 
-# 5) Quick smoke test (~15 OD pairs)
-python -m src.evaluation.run_simulation --quick
-
-# 6) Full 900 experiments (75 OD x 3 scenarios x 4 delta) — 10–20 min
-python -m src.evaluation.evaluate_framework --results-dir results/sliding
-python -m src.evaluation.run_simulation
-
-# 7) One report, UTF-8, numbers taken from the CSV (not hard-coded)
+# 5) One report, UTF-8, numbers taken from the CSV (not hard-coded)
 python run_full_framework.py
 
-# 8) METR-LA vs PEMS-BAY plots
+# 6) Optional: separate PEMS-BAY model + plots (not joint training)
+python -m src.prediction.preprocess_pems_bay
+python -m src.prediction.train_pems_bay
 python -m src.evaluation.cross_validate
 ```
 
-Or run the whole sequence:
-
-```bash
-bash run_improved_pipeline.sh
-```
-
+Or: `bash run_improved_pipeline.sh`  
 PowerShell: `.\run_improved_pipeline.ps1`
 
 ## Outputs to paste into Chapter 4
@@ -84,7 +82,6 @@ PowerShell: `.\run_improved_pipeline.ps1`
 - `visualizations/obj3_delta_sensitivity.png`
 - `visualizations/obj4_travel_time_reduction.png`
 - `models/saved/metr_la_metrics.pkl`  (test MAE/RMSE in mph)
-- `models/saved/joint_metrics.pkl`    (if you ran joint training)
 
 ## Switching back to main
 

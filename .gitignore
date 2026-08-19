@@ -6,3 +6,4 @@ __pycache__/
 data/processed/*.npz
 data/processed/speed_data_raw.npy
 data/raw/*.h5
+data/raw/sensor_graph/distances*.csv

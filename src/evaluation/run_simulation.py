@@ -181,7 +181,9 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--quick", action="store_true", help="15 OD pairs for a smoke test")
     parser.add_argument("--n-od", type=int, default=75)
-    parser.add_argument("--no-remap", action="store_true", help="Keep original random sensor mapping")
+    parser.add_argument("--no-remap", action="store_true", help="Keep original random sensor mapping (OSM mode)")
+    parser.add_argument("--graph", choices=["sensor", "osm"], default="sensor",
+                        help="sensor = METR-LA detector graph (recommended); osm = downtown OSM")
     args = parser.parse_args()
 
     n_od = 15 if args.quick else args.n_od
@@ -199,7 +201,7 @@ def main():
 
     safe_print("\n[Phase 2] Loading road network...")
     G, esm, weights, ff_mph, lengths, ff_tt = load_graph_and_costs(
-        PROCESSED_DIR, remap=not args.no_remap
+        PROCESSED_DIR, remap=not args.no_remap, graph_mode=args.graph
     )
 
     safe_print("\n[Phase 3] Loading test data (mph, inverse-scaled)...")
