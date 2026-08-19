@@ -216,19 +216,21 @@ def load_graph_and_costs(
       'osm'    — downtown OSM graph with interpolated speeds
     """
     adj_path = os.path.join("data", "raw", "sensor_graph", "adj_mx.pkl")
+    npz_path = os.path.join("data", "raw", "sensor_graph", "adj_mx.npz")
     loc_path = os.path.join("data", "raw", "sensor_graph", "graph_sensor_locations.csv")
 
     if graph_mode == "sensor":
-        if not os.path.exists(adj_path):
+        if not os.path.exists(adj_path) and not os.path.exists(npz_path):
             try:
                 from download_data import download_sensor_graph
                 download_sensor_graph()
             except Exception as exc:
                 safe_print(f"  [WARN] Could not auto-download sensor graph: {exc}")
-    if graph_mode == "sensor" and os.path.exists(adj_path):
+    sensor_graph_path = adj_path if os.path.exists(adj_path) else npz_path
+    if graph_mode == "sensor" and os.path.exists(sensor_graph_path):
         from src.routing.graph_builder import build_graph_from_adjacency
         G, esm, lengths = build_graph_from_adjacency(
-            adj_path, loc_path if os.path.exists(loc_path) else None, threshold=0.1
+            sensor_graph_path, loc_path if os.path.exists(loc_path) else None, threshold=0.1
         )
         for u, v, data in G.edges(data=True):
             data.setdefault("highway", "motorway")

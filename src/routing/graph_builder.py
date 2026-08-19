@@ -19,9 +19,10 @@ Also exports:
 
 import os
 import pickle
-import numpy as np
+from typing import Dict, List, Optional, Tuple
+
 import networkx as nx
-from typing import Dict, Tuple, Optional
+import numpy as np
 
 
 # ── METR-LA sensor metadata ───────────────────────────────────────────────────
@@ -35,6 +36,123 @@ AVG_HIGHWAY_SPEED_MPS = 25 * 0.44704   # 25 mph ≈ 11.2 m/s
 SENSOR_SPACING_M      = 1000.0         # ~1 km between adjacent sensors
 
 
+def _unpickle_bytes(raw: bytes):
+    """Load a DCRNN Python-2 protocol-0 pickle, including Windows CRLF checkouts."""
+    blobs = [raw, raw.replace(b"\r\n", b"\n"), raw.replace(b"\r", b"\n")]
+    encodings = ("latin1", "bytes")
+    last_err = None
+    for blob in blobs:
+        for encoding in encodings:
+            try:
+                return pickle.loads(blob, encoding=encoding)
+            except Exception as exc:
+                last_err = exc
+        try:
+            return pickle.loads(blob)
+        except Exception as exc:
+            last_err = exc
+    raise last_err
+
+
+def _from_npz(path: str) -> Tuple[List, np.ndarray]:
+    z = np.load(path, allow_pickle=True)
+    adj_mx = np.asarray(z["adj_mx"])
+    if "sensor_ids" in z.files:
+        sensor_ids = [str(s) for s in z["sensor_ids"].tolist()]
+    else:
+        sensor_ids = list(range(adj_mx.shape[0]))
+    return sensor_ids, adj_mx
+
+
+def _reconstruct_from_distances(adj_dir: str, normalized_k: float = 0.1
+                                ) -> Tuple[List, np.ndarray]:
+    """DCRNN Gaussian kernel on distances_la_2012.csv when the pickle cannot be read."""
+    import pandas as pd
+
+    loc_path = os.path.join(adj_dir, "graph_sensor_locations.csv")
+    dist_path = os.path.join(adj_dir, "distances_la_2012.csv")
+    if not (os.path.exists(loc_path) and os.path.exists(dist_path)):
+        raise FileNotFoundError(
+            "Need graph_sensor_locations.csv and distances_la_2012.csv to rebuild adjacency"
+        )
+    locs = pd.read_csv(loc_path)
+    id_col = "sensor_id" if "sensor_id" in locs.columns else locs.columns[1]
+    sensor_ids = [str(s) for s in locs[id_col].tolist()]
+    id_to_ind = {sid: i for i, sid in enumerate(sensor_ids)}
+    n = len(sensor_ids)
+    dist_mx = np.full((n, n), np.inf, dtype=np.float64)
+    dist_df = pd.read_csv(dist_path)
+    for row in dist_df.itertuples(index=False):
+        frm, to, cost = str(row[0]), str(row[1]), float(row[2])
+        if frm in id_to_ind and to in id_to_ind:
+            dist_mx[id_to_ind[frm], id_to_ind[to]] = cost
+    finite = dist_mx[np.isfinite(dist_mx)]
+    std = float(finite.std()) if finite.size else 1.0
+    std = max(std, 1e-6)
+    adj_mx = np.exp(-np.square(dist_mx / std))
+    adj_mx[adj_mx < normalized_k] = 0.0
+    np.fill_diagonal(adj_mx, 0.0)
+    return sensor_ids, adj_mx
+
+
+def load_adjacency_matrix(adj_mx_path: str) -> Tuple[List, np.ndarray]:
+    """
+    Load DCRNN (sensor_ids, adj_mx).
+
+    Accepts .pkl (Python 2), .npz, or .npy. A sibling adj_mx.npz is preferred
+    because Git on Windows often converts protocol-0 pickles to CRLF, which
+    raises UnpicklingError: the STRING opcode argument must be quoted.
+    """
+    base, ext = os.path.splitext(adj_mx_path)
+    adj_dir = os.path.dirname(adj_mx_path) or "."
+    npz_path = base + ".npz"
+    npy_path = base + ".npy"
+
+    if ext.lower() == ".npz" and os.path.exists(adj_mx_path):
+        return _from_npz(adj_mx_path)
+    if os.path.exists(npz_path):
+        return _from_npz(npz_path)
+    if ext.lower() == ".npy" and os.path.exists(adj_mx_path):
+        adj_mx = np.load(adj_mx_path)
+        return list(range(adj_mx.shape[0])), np.asarray(adj_mx)
+    if os.path.exists(npy_path):
+        adj_mx = np.load(npy_path)
+        return list(range(adj_mx.shape[0])), np.asarray(adj_mx)
+
+    last_err = None
+    if ext.lower() == ".pkl" and os.path.exists(adj_mx_path):
+        try:
+            with open(adj_mx_path, "rb") as f:
+                data = _unpickle_bytes(f.read())
+            if isinstance(data, (list, tuple)) and len(data) == 3:
+                sensor_ids, _, adj_mx = data
+                return list(sensor_ids), np.asarray(adj_mx)
+            adj_mx = np.asarray(data)
+            return list(range(adj_mx.shape[0])), adj_mx
+        except Exception as exc:
+            last_err = exc
+
+    try:
+        return _reconstruct_from_distances(adj_dir)
+    except Exception as exc:
+        detail = f"{last_err}; then {exc}" if last_err else str(exc)
+        raise ValueError(
+            f"Could not load adjacency from {adj_mx_path} ({detail})"
+        ) from exc
+
+
+def export_adjacency_npz(adj_mx_path: str, npz_path: Optional[str] = None) -> str:
+    """Write a Python-3 npz next to the DCRNN pickle so Windows does not need it."""
+    sensor_ids, adj_mx = load_adjacency_matrix(adj_mx_path)
+    npz_path = npz_path or os.path.splitext(adj_mx_path)[0] + ".npz"
+    np.savez_compressed(
+        npz_path,
+        adj_mx=np.asarray(adj_mx),
+        sensor_ids=np.array(sensor_ids, dtype=object),
+    )
+    return npz_path
+
+
 def build_graph_from_adjacency(adj_mx_path: str,
                                 sensor_locs_path: Optional[str] = None,
                                 threshold: float = 0.1
@@ -45,7 +163,7 @@ def build_graph_from_adjacency(adj_mx_path: str,
     Parameters
     ----------
     adj_mx_path      : path to adj_mx.pkl  (from DCRNN data release)
-                       OR a numpy .npy file of shape (N, N)
+                       OR adj_mx.npz / a numpy .npy file of shape (N, N)
     sensor_locs_path : optional CSV with columns: sensor_id, lat, lon
     threshold        : edges where adj_mx[i,j] > threshold are included
 
@@ -55,28 +173,9 @@ def build_graph_from_adjacency(adj_mx_path: str,
     edge_sensor_map : {(u,v): sensor_index_of_u}
     edge_lengths_m  : {(u,v): float metres}
     """
-    # ── load adjacency matrix ─────────────────────────────────────────────────
-    if adj_mx_path.endswith('.pkl'):
-        with open(adj_mx_path, 'rb') as f:
-            try:
-                data = pickle.load(f)
-            except Exception:
-                f.seek(0)
-                data = pickle.load(f, encoding='latin1')
-        # DCRNN format: (sensor_ids, sensor_id_to_ind, adj_mx)
-        if isinstance(data, (list, tuple)) and len(data) == 3:
-            sensor_ids, _, adj_mx = data
-        else:
-            adj_mx = np.array(data)
-            sensor_ids = list(range(adj_mx.shape[0]))
-    elif adj_mx_path.endswith('.npy'):
-        adj_mx   = np.load(adj_mx_path)
-        sensor_ids = list(range(adj_mx.shape[0]))
-    else:
-        raise ValueError("adj_mx_path must be .pkl or .npy")
-
+    sensor_ids, adj_mx = load_adjacency_matrix(adj_mx_path)
+    adj_mx = np.asarray(adj_mx)
     n = adj_mx.shape[0]
-    adj_mx = np.array(adj_mx)
 
     # ── load sensor locations (optional) ─────────────────────────────────────
     locs = _load_sensor_locations(sensor_locs_path, n)

@@ -1,26 +1,26 @@
-"""Build the 15-minute Objectives 3 & 4 progress PPT (widescreen, KyU navy)."""
+"""Build the 15-minute research seminar PPT (widescreen, KyU navy).
+
+Overwrites docs/Freshia_Njoki_Obj34_Findings_Presentation.pptx in place.
+"""
 from pathlib import Path
 
 from pptx import Presentation
 from pptx.dml.color import RGBColor
 from pptx.enum.shapes import MSO_SHAPE
-from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
-from pptx.oxml.ns import nsmap
-from pptx.util import Emu, Inches, Pt
-from lxml import etree
+from pptx.enum.text import PP_ALIGN
+from pptx.util import Inches, Pt
 
 NAVY = RGBColor(0x1E, 0x27, 0x61)
 GOLD = RGBColor(0xE8, 0xA8, 0x38)
-TEAL = RGBColor(0x0D, 0x94, 0x88)
 WHITE = RGBColor(0xFF, 0xFF, 0xFF)
 ICE = RGBColor(0xCA, 0xDC, 0xFC)
 MUTED = RGBColor(0xA0, 0xB0, 0xD0)
 CARD = RGBColor(0x2A, 0x35, 0x7A)
-RED = RGBColor(0xC0, 0x39, 0x2B)
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "docs" / "Freshia_Njoki_Obj34_Findings_Presentation.pptx"
 FIG = ROOT / "results" / "simulation" / "figures"
+TOTAL = 12
 
 
 def set_bg(slide, rgb=NAVY):
@@ -39,7 +39,7 @@ def bar(slide, top=0, height=0.12, color=GOLD):
     return sh
 
 
-def footer(slide, n, total=12):
+def footer(slide, n, total=TOTAL):
     bar(slide, top=7.38, height=0.12, color=GOLD)
     t = slide.shapes.add_textbox(Inches(0.4), Inches(7.18), Inches(10.5), Inches(0.22))
     p = t.text_frame.paragraphs[0]
@@ -58,7 +58,8 @@ def footer(slide, n, total=12):
     r2.font.name = "Calibri"
 
 
-def txt(slide, l, t, w, h, text, size=18, color=WHITE, bold=False, font="Calibri", align=PP_ALIGN.LEFT):
+def txt(slide, l, t, w, h, text, size=18, color=WHITE, bold=False, font="Calibri",
+        align=PP_ALIGN.LEFT):
     box = slide.shapes.add_textbox(Inches(l), Inches(t), Inches(w), Inches(h))
     tf = box.text_frame
     tf.word_wrap = True
@@ -73,8 +74,26 @@ def txt(slide, l, t, w, h, text, size=18, color=WHITE, bold=False, font="Calibri
     return box
 
 
+def bullets(slide, l, t, w, h, items, size=16, color=WHITE, space_after=8):
+    box = slide.shapes.add_textbox(Inches(l), Inches(t), Inches(w), Inches(h))
+    tf = box.text_frame
+    tf.word_wrap = True
+    for i, item in enumerate(items):
+        p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
+        p.space_after = Pt(space_after)
+        p.alignment = PP_ALIGN.LEFT
+        run = p.add_run()
+        run.text = "•  " + item
+        run.font.size = Pt(size)
+        run.font.color.rgb = color
+        run.font.name = "Calibri"
+    return box
+
+
 def card(slide, l, t, w, h, fill=CARD):
-    sh = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(l), Inches(t), Inches(w), Inches(h))
+    sh = slide.shapes.add_shape(
+        MSO_SHAPE.ROUNDED_RECTANGLE, Inches(l), Inches(t), Inches(w), Inches(h)
+    )
     sh.fill.solid()
     sh.fill.fore_color.rgb = fill
     sh.line.fill.background()
@@ -107,357 +126,391 @@ blank = prs.slide_layouts[6]
 s = prs.slides.add_slide(blank)
 set_bg(s)
 bar(s, 0, 0.12)
-txt(s, 0.6, 0.45, 12, 0.35, "KIRINYAGA UNIVERSITY  ·  MSc COMPUTER SCIENCE", 14, ICE)
+txt(s, 0.6, 0.45, 12, 0.35, "KIRINYAGA UNIVERSITY  ·  SCHOOL OF PURE AND APPLIED SCIENCES", 14, ICE)
 txt(
-    s,
-    0.6,
-    1.15,
-    12,
-    1.6,
+    s, 0.6, 1.05, 12, 1.7,
     "GRU-Based Predictive Route Optimisation\nfor Emergency Vehicle Navigation",
-    32,
-    WHITE,
-    True,
-    "Cambria",
+    32, WHITE, True, "Cambria",
 )
-sh = s.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0.6), Inches(2.95), Inches(3.0), Inches(0.06))
+sh = s.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0.6), Inches(2.85), Inches(3.0), Inches(0.06))
 sh.fill.solid()
 sh.fill.fore_color.rgb = GOLD
 sh.line.fill.background()
-txt(s, 0.6, 3.2, 12, 0.4, "Research Progress Presentation  —  Objectives 3 & 4 findings", 18, ICE)
+txt(s, 0.6, 3.1, 12, 0.4, "Master of Science in Computer Science  ·  Research seminar (15 minutes)", 18, ICE)
 txt(
-    s,
-    0.6,
-    4.0,
-    12,
-    0.8,
-    "Freshia Njoki Macharia  |  PA206/S/25427/24\nSupervisors: Dr Gilbert Langat  ·  Dr Stephen Mageto",
-    16,
-    MUTED,
+    s, 0.6, 3.7, 12, 1.1,
+    "Freshia Njoki Macharia  |  PA206/S/25427/24\n"
+    "Supervisors: Dr Gilbert Langat  ·  Dr Stephen Mageto",
+    16, MUTED,
 )
-txt(s, 0.6, 5.3, 12, 0.4, "Defended results  ·  900 ground-truth journeys  ·  METR-LA detector graph", 14, GOLD)
+txt(
+    s, 0.6, 5.15, 12, 0.7,
+    "Artefact: two-layer GRU speed forecasts + time-dependent A* + remaining-time controller\n"
+    "Evaluation: 900 ground-truth journeys on the METR-LA detector graph",
+    15, GOLD,
+)
 footer(s, 1)
 notes(
     s,
-    "0:00–0:30. Thank the panel. Say this talk reports Objectives 3 and 4 only, using the improved evaluation on branch cursor/improve-ev-routing-framework-c48b. One sentence on what the artefact is: GRU speeds + time-dependent A* + a remaining-time threshold, as dispatcher support. Do not mention 78%, 123 seconds, or 0.17%.",
+    "0:00–0:30. Thank the chair, supervisors, and examiners. One sentence: this seminar reports a "
+    "decision-support framework that forecasts short-horizon traffic speeds and uses those forecasts "
+    "to route an emergency vehicle before congestion is met. The dispatcher keeps authority. "
+    "Then preview the arc: problem → purpose and objectives → method → prediction → routing results "
+    "→ limits. Stay inside 15 minutes.",
 )
 
-# ----- 2 recap -----
+
+# ----- 2 problem -----
 s = prs.slides.add_slide(blank)
 set_bg(s)
 bar(s, 0, 0.12)
-txt(s, 0.5, 0.28, 12, 0.45, "Recap — what was already shown (Obj. 1 & 2)", 26, WHITE, True, "Cambria")
+txt(s, 0.5, 0.28, 12, 0.45, "Problem statement", 26, WHITE, True, "Cambria")
+card(s, 0.5, 0.9, 12.3, 1.55)
+txt(
+    s, 0.75, 1.05, 11.8, 1.25,
+    "Emergency vehicles lose time in congestion when dispatch uses a current-map shortest path. "
+    "That path is optimal only for the speeds observed at departure. It does not anticipate a jam "
+    "forming 15–30 minutes ahead on the planned corridor.",
+    16, WHITE,
+)
 items = [
-    ("Gap", "No emergency loop joined a learned speed model, time-dependent search, and a tested remaining-time trigger."),
-    ("Artefact", "Two-layer GRU (64 units, dropout 0.2) + TD-A* + δ-controller. Dispatcher keeps final authority."),
-    ("Prediction", "METR-LA MAE 3.48 mph (27 epochs). Separate PEMS-BAY GRU MAE 2.38 mph. Not one joint model."),
-    ("Graph", "Routing uses 207 detector nodes and 1,515 fully instrumented edges — not the old 397-node OSM map."),
+    ("Practice", "Dijkstra (or equivalent) on the snapshot available at dispatch."),
+    ("Literature", "Strong speed predictors and strong time-dependent routers usually sit in separate papers. Few emergency loops join a learned forecast, time-dependent search, and a tested remaining-time trigger under one second."),
+    ("Motivation", "Kenyan EMS delay and sparse roadside sensing motivate the work. This study is a proof of concept on United States freeway detectors; it is not a Nairobi field trial."),
 ]
 for i, (h, body) in enumerate(items):
-    y = 0.9 + i * 1.35
+    y = 2.65 + i * 1.35
     card(s, 0.5, y, 12.3, 1.22)
-    txt(s, 0.75, y + 0.12, 11.8, 0.35, h, 16, GOLD, True)
-    txt(s, 0.75, y + 0.48, 11.8, 0.6, body, 16, WHITE)
+    txt(s, 0.75, y + 0.12, 11.8, 0.32, h, 16, GOLD, True)
+    txt(s, 0.75, y + 0.46, 11.8, 0.65, body, 15, WHITE)
 footer(s, 2)
 notes(
     s,
-    "0:30–1:30. Correct the previous presentation: MAE is 3.48 not 3.42; 34,272 frames not 34,254; StandardScaler on train only, not MinMax; routing graph is the sensor graph, not 397 OSM nodes. PEMS-BAY is a second GRU, not a second 900-run.",
+    "0:30–1:45. State the problem in operational language. Do not open with architecture. "
+    "If asked about Nairobi: the purpose is motivated by local EMS delay; the measured percentages "
+    "come from Los Angeles detectors. Method can transfer; numbers cannot until local sensors exist.",
 )
 
-# ----- 3 setup -----
+
+# ----- 3 purpose / RQs / objectives -----
 s = prs.slides.add_slide(blank)
 set_bg(s)
 bar(s, 0, 0.12)
-txt(s, 0.5, 0.28, 12, 0.45, "What was measured — 900 matched journeys", 26, WHITE, True, "Cambria")
-stats = [
-    ("75", "origin–destination\npairs (seed 42)"),
-    ("3", "scenarios: peak,\noff-peak, incident"),
-    ("4", "δ values:\n5, 10, 15, 20%"),
-    ("900", "ground-truth\nwalks of every method"),
+txt(s, 0.5, 0.28, 12, 0.4, "Purpose, questions, and objectives", 26, WHITE, True, "Cambria")
+card(s, 0.5, 0.8, 12.3, 1.25)
+txt(s, 0.75, 0.92, 11.8, 0.28, "Purpose", 14, GOLD, True)
+txt(
+    s, 0.75, 1.22, 11.8, 0.7,
+    "To reduce emergency-vehicle travel time under congestion by combining short-horizon GRU speed "
+    "forecasts with time-dependent A* and a remaining-time replanning threshold, as dispatcher support.",
+    15, WHITE,
+)
+rqs = [
+    ("RQ1", "What gaps remain among EV routing, traffic prediction, and time-dependent pathfinding?"),
+    ("RQ2", "How accurately can a lightweight GRU forecast 15–30 minute speeds on loop-detector traces?"),
+    ("RQ3", "Which remaining-time threshold δ balances route quality against extra dispatcher alerts?"),
+    ("RQ4", "Does the integrated loop cut realised travel time versus baselines while staying under 1 s?"),
 ]
-for i, (n, lab) in enumerate(stats):
-    card(s, 0.45 + i * 3.2, 0.95, 3.0, 2.15)
-    txt(s, 0.45 + i * 3.2, 1.1, 3.0, 0.7, n, 36, GOLD, True, "Cambria", PP_ALIGN.CENTER)
-    txt(s, 0.55 + i * 3.2, 1.9, 2.8, 0.95, lab, 14, WHITE, False, "Calibri", PP_ALIGN.CENTER)
-txt(s, 0.5, 3.3, 12, 0.35, "Four baselines (same clock, same realised speeds)", 16, ICE, True)
-bases = [
-    ("B1  Dijkstra", "Current snapshot\n— dispatch practice"),
-    ("B2  Static A*", "Historical mean\n— average day"),
-    ("B3  Reactive A*", "Replan after jam\nis already visible"),
-    ("B4  Oracle", "Perfect future speeds\n— unreachable ceiling"),
-]
-for i, (h, b) in enumerate(bases):
-    card(s, 0.45 + i * 3.2, 3.75, 3.0, 1.7)
-    txt(s, 0.55 + i * 3.2, 3.9, 2.8, 0.45, h, 15, GOLD, True)
-    txt(s, 0.55 + i * 3.2, 4.4, 2.8, 0.85, b, 13, WHITE)
+for i, (h, b) in enumerate(rqs):
+    y = 2.2 + i * 0.55
+    txt(s, 0.55, y, 1.1, 0.45, h, 14, GOLD, True)
+    txt(s, 1.7, y, 11.0, 0.5, b, 14, WHITE)
+txt(
+    s, 0.5, 4.45, 12.3, 0.3,
+    "Objectives  —  Obj. 1 design the GRU  ·  Obj. 2 train and validate  ·  Obj. 3 integrate TD-A* and test δ  ·  Obj. 4 evaluate travel time and latency",
+    13, ICE,
+)
+card(s, 0.5, 4.9, 12.3, 1.5)
+txt(s, 0.75, 5.05, 11.8, 0.28, "Scope of this seminar", 14, GOLD, True)
+txt(
+    s, 0.75, 5.4, 11.8, 0.8,
+    "Objectives 1–2 are summarised (architecture, MAE, two datasets). Objectives 3–4 are reported in full: "
+    "δ sweep, 900 matched journeys, four baselines, and computational feasibility.",
+    15, WHITE,
+)
 footer(s, 3)
 notes(
     s,
-    "1:30–2:30. Stress pairing: the same ambulance, same departure, five brains choosing the path, marked on actual future speeds. Incident = 40% slowdown on the planned corridor so the vehicle actually meets the jam. Peak = slowest quarter of windows; off-peak = fastest quarter.",
+    "1:45–3:15. Read the purpose once. Then: four questions map onto four objectives. "
+    "RQ3’s δ is a dispatcher setting, not a p-value. RQ4’s 1-second cap is the operational constraint. "
+    "Tell them you will spend most of the remaining time on Objectives 3 and 4 because that is new evidence.",
 )
 
-# ----- 4 obj3 question -----
+
+# ----- 4 framework -----
 s = prs.slides.add_slide(blank)
 set_bg(s)
 bar(s, 0, 0.12)
-txt(s, 0.5, 0.28, 12, 0.45, "Objective 3 — which remaining-time trigger?", 26, WHITE, True, "Cambria")
-card(s, 0.5, 0.95, 12.3, 1.5)
-txt(
-    s,
-    0.75,
-    1.1,
-    11.8,
-    1.15,
-    "RQ3: What δ balances route reliability against extra dispatcher alerts?\nA new path is offered if remaining time from the current position grows by more than δ, or a new path is better by δ.",
-    16,
-    WHITE,
-)
-card(s, 0.5, 2.7, 6.0, 3.5)
-txt(s, 0.75, 2.9, 5.5, 0.4, "δ  —  policy  (not a p-value)", 16, GOLD, True)
-txt(
-    s,
-    0.75,
-    3.4,
-    5.5,
-    2.5,
-    "δ = 0.05 means: speak if the rest of the trip looks 5% worse.\n\nTested {0.05, 0.10, 0.15, 0.20}.\n\nThis is a dispatcher setting.",
-    16,
-    WHITE,
-)
-card(s, 6.8, 2.7, 6.0, 3.5)
-txt(s, 7.05, 2.9, 5.5, 0.4, "α / p  —  statistics", 16, GOLD, True)
-txt(
-    s,
-    7.05,
-    3.4,
-    5.5,
-    2.5,
-    "α = .05 means: call a mean reduction real only if a zero effect would produce it fewer than five times in a hundred.\n\nAPA writes p = .0002 (no leading zero) because p cannot exceed 1.",
-    16,
-    WHITE,
-)
+txt(s, 0.5, 0.28, 12, 0.45, "Proposed framework", 26, WHITE, True, "Cambria")
+steps = [
+    ("1", "Observe", "12 steps of detector speeds (60 minutes)."),
+    ("2", "Forecast", "Two-layer GRU, 64 units, dropout 0.2 → 6 steps (30 minutes)."),
+    ("3", "Cost", "Predicted mph converted to edge travel times on the detector graph."),
+    ("4", "Route", "Time-dependent A* from origin to destination."),
+    ("5", "Control", "Offer a new path if remaining time grows by more than δ."),
+    ("6", "Authority", "Dispatcher accepts or rejects. The vehicle is not autonomous."),
+]
+for i, (n, h, b) in enumerate(steps):
+    col, row = i % 3, i // 3
+    x, y = 0.45 + col * 4.2, 0.95 + row * 2.55
+    card(s, x, y, 4.0, 2.35)
+    txt(s, x + 0.2, y + 0.2, 3.6, 0.45, n, 28, GOLD, True, "Cambria")
+    txt(s, x + 0.2, y + 0.75, 3.6, 0.4, h, 18, ICE, True)
+    txt(s, x + 0.2, y + 1.25, 3.6, 0.85, b, 14, WHITE)
 footer(s, 4)
 notes(
     s,
-    "2:30–3:30. This is the slide that stops the two 0.05s being mixed. Remaining time is from where the vehicle is now — that is why replans exist in the new run. If T_old was the original full trip from the station, the controller stayed silent.",
+    "3:15–4:15. Walk 1→6 left to right, then down. Emphasise remaining time from the vehicle’s current "
+    "position, not the original station-to-scene total. Two GRUs exist (METR-LA and PEMS-BAY); only the "
+    "Los Angeles model feeds routing. This is decision support, not an automated ambulance.",
 )
 
-# ----- 5 obj3 figure -----
+
+# ----- 5 methods -----
 s = prs.slides.add_slide(blank)
 set_bg(s)
 bar(s, 0, 0.12)
-txt(s, 0.5, 0.22, 12, 0.4, "Objective 3 — travel time did not move with δ", 24, WHITE, True, "Cambria")
-add_picture_safe(s, FIG / "fig3_delta_sensitivity.png", 0.35, 0.7, w=8.3)
-card(s, 8.8, 0.9, 4.1, 5.4)
-txt(s, 9.0, 1.1, 3.7, 0.4, "Read the figure", 16, GOLD, True)
-txt(
-    s,
-    9.0,
-    1.55,
-    3.7,
-    4.5,
-    "Left: % vs Dijkstra is flat across 5–20%.\nIncident ≈ 16% at every δ.\nPeak ≈ 1%. Off-peak ≈ 0%.\n\nRight: replans fall slightly as δ rises.\nIncidents ≈ 1 replan per trip.\n\nANOVA: F ≈ 0.001, p = 1.00.\nThe four policies tied on travel time.",
-    14,
-    WHITE,
-)
+txt(s, 0.5, 0.28, 12, 0.4, "Data, graph, and experimental design", 26, WHITE, True, "Cambria")
+left = [
+    "METR-LA: 207 loop detectors, 34,272 five-minute frames (Li et al., 2018).",
+    "PEMS-BAY: 325 detectors, January–May 2017 (five months). Separate GRU; prediction only.",
+    "StandardScaler fitted on the training split only (no leakage from val/test).",
+    "Routing graph: METR-LA detector adjacency — 207 nodes, 1,515 edges, every edge instrumented.",
+]
+right = [
+    "75 origin–destination pairs (seed 42) × 3 scenarios × 4 δ values = 900 journeys.",
+    "Scenarios: peak (slowest quartile), off-peak (fastest quartile), incident (40% slowdown on the planned corridor).",
+    "Every method is walked on actual future speeds. Pairing is identical origin, destination, and clock.",
+    "B1 Dijkstra (current snapshot)  ·  B2 static A* (historical mean)  ·  B3 reactive A*  ·  B4 oracle.",
+]
+card(s, 0.45, 0.85, 6.1, 5.5)
+txt(s, 0.7, 1.05, 5.6, 0.35, "Data and network", 16, GOLD, True)
+bullets(s, 0.7, 1.55, 5.6, 4.5, left, size=15, space_after=14)
+card(s, 6.8, 0.85, 6.1, 5.5)
+txt(s, 7.05, 1.05, 5.6, 0.35, "900-run design", 16, GOLD, True)
+bullets(s, 7.05, 1.55, 5.6, 4.5, right, size=15, space_after=14)
 footer(s, 5)
 notes(
     s,
-    "3:30–5:00. Point at the orange incident line: it is high and flat. F near zero is not a failed study — a 40% corridor drop is larger than 20% remaining-time growth, so every policy fired. That is why we do not pick δ by travel time.",
+    "4:15–5:30. Two datasets, two models — not one joint 207+325 tensor. Routing uses only METR-LA. "
+    "The graph is the detector adjacency with 100% coverage, not an OpenStreetMap downtown extract. "
+    "Incident means the vehicle actually meets a slowed corridor. B4 is an unreachable ceiling so the "
+    "framework must not beat it. B3 replans after the jam is already visible.",
 )
 
-# ----- 6 recommend 0.20 -----
+
+# ----- 6 prediction -----
 s = prs.slides.add_slide(blank)
 set_bg(s)
 bar(s, 0, 0.12)
-txt(s, 0.5, 0.28, 12, 0.45, "Recommended default: δ = 0.20", 26, WHITE, True, "Cambria")
-rows = [
-    ("δ", "Mean vs Dijkstra", "Replans / journey", "TD-A* latency"),
-    ("0.05", "+5.726%", "0.45", "0.37 ms"),
-    ("0.10", "+5.748%", "0.44", "0.37 ms"),
-    ("0.15", "+5.726%", "0.43", "0.37 ms"),
-    ("0.20", "+5.767%", "0.39", "0.37 ms"),
+txt(s, 0.5, 0.22, 12, 0.4, "Objectives 1 and 2 — prediction", 26, WHITE, True, "Cambria")
+stats = [
+    ("3.48 mph", "METR-LA test MAE\nRMSE 6.04 mph  ·  27 epochs"),
+    ("2.38 mph", "PEMS-BAY test MAE\nseparate model  ·  79 epochs"),
+    ("158 k", "Trainable parameters\n2 × 64 GRU, dropout 0.2"),
 ]
-for r, row in enumerate(rows):
-    y = 0.95 + r * 0.7
-    bgc = GOLD if r == 4 else (RGBColor(0x24, 0x2E, 0x6E) if r else CARD)
-    fg = NAVY if r == 4 else WHITE
-    for c, val in enumerate(row):
-        card(s, 0.5 + c * 3.15, y, 3.05, 0.62, bgc)
-        txt(s, 0.5 + c * 3.15, y + 0.12, 3.05, 0.4, val, 14, fg, True, "Calibri", PP_ALIGN.CENTER)
-card(s, 0.5, 4.55, 12.3, 1.85)
-txt(
-    s,
-    0.75,
-    4.75,
-    11.8,
-    1.45,
-    "Decision-support reading: keep the least chatty policy that still catches incidents.\n0.10 was the planned guess in Chapter 3. After measurement, 0.20 is the operational default.",
-    16,
-    WHITE,
+for i, (n, lab) in enumerate(stats):
+    card(s, 0.45 + i * 4.2, 0.8, 4.0, 1.85)
+    txt(s, 0.55 + i * 4.2, 0.95, 3.8, 0.7, n, 28, GOLD, True, "Cambria", PP_ALIGN.CENTER)
+    txt(s, 0.55 + i * 4.2, 1.7, 3.8, 0.75, lab, 13, WHITE, False, "Calibri", PP_ALIGN.CENTER)
+card(s, 0.45, 2.9, 12.4, 3.45)
+txt(s, 0.7, 3.1, 12.0, 0.35, "What this means for routing", 16, GOLD, True)
+bullets(
+    s, 0.7, 3.55, 11.9, 2.55,
+    [
+        "A 3.48 mph error on freeway speeds is small enough to rank corridors, not to replace a dispatcher.",
+        "PEMS-BAY confirms the architecture in a second city. It is not a second 900-run routing city.",
+        "Input window 60 minutes; forecast horizon 30 minutes — matched to a typical urban emergency trip.",
+        "The defended METR-LA checkpoint is the 27-epoch model (MAE 3.48 mph) used for the 900 journeys.",
+    ],
+    size=15, space_after=10,
 )
 footer(s, 6)
 notes(
     s,
-    "5:00–6:00. Highlight the last row. Slightly fewer alerts, same travel time. Do not say 0.10 is still recommended. Combined wait is not this 0.37 ms — that is routing only; GRU is ~39 ms.",
+    "5:30–6:30. Quote 3.48 and 2.38. Chronological 70/15/15 split. Train-only scaler. "
+    "If asked why not a graph neural net: latency budget and a proof-of-concept two-layer GRU; "
+    "literature already shows GNNs can win on MAE. You traded a little accuracy for a 40 ms loop.",
 )
 
-# ----- 7 obj4 times -----
+
+# ----- 7 obj 3 -----
 s = prs.slides.add_slide(blank)
 set_bg(s)
 bar(s, 0, 0.12)
-txt(s, 0.5, 0.22, 12, 0.4, "Objective 4 — journey time (seconds)", 24, WHITE, True, "Cambria")
-add_picture_safe(s, FIG / "fig1_travel_time_comparison.png", 0.3, 0.7, w=8.1)
-card(s, 8.55, 0.85, 4.4, 5.5)
-txt(s, 8.75, 1.05, 4.0, 0.35, "Incident cell", 16, GOLD, True)
+txt(s, 0.5, 0.22, 12, 0.4, "Objective 3 — remaining-time threshold δ", 24, WHITE, True, "Cambria")
+add_picture_safe(s, FIG / "fig3_delta_sensitivity.png", 0.3, 0.7, w=8.2)
+card(s, 8.65, 0.7, 4.25, 5.7)
+txt(s, 8.85, 0.85, 3.9, 0.35, "Finding", 16, GOLD, True)
 txt(
-    s,
-    8.75,
-    1.5,
-    4.0,
-    4.5,
-    "Dijkstra  ≈  728 s\nFramework  ≈  599 s\nReactive A*  ≈  604 s\nOracle  ≈  581 s\n\nPeak: 506 s vs 513 s\nOff-peak: both ≈ 403 s\n\nThe framework does not beat the oracle. That is required if B4 is honest.",
-    15,
-    WHITE,
+    s, 8.85, 1.3, 3.9, 4.85,
+    "δ = 0.05 means: offer a new path if remaining time from the current position grows by 5%.\n\n"
+    "Tested {0.05, 0.10, 0.15, 0.20}.\n\n"
+    "Travel time did not move (ANOVA F ≈ 0.001, p = 1.00).\n\n"
+    "Incident reduction stayed ≈ 16% at every δ, with about one replan per journey.\n\n"
+    "Recommended default: δ = 0.20 — same travel time, slightly fewer alerts.\n\n"
+    "0.10 was the Chapter 3 starting guess, not the measured default.\n\n"
+    "δ is a policy. α = .05 is a significance level. They are not the same 0.05.",
+    13, WHITE,
 )
 footer(s, 7)
 notes(
     s,
-    "6:00–7:30. This replaces 123 s versus 588 s, which was a scaling bug. Tell them: when the planned road is jammed, 728 seconds falls to about 599. Off-peak bars sit on top of each other — empty roads do not need a fortune-teller.",
+    "6:30–8:00. Point at the flat incident line. A 40% corridor drop exceeds a 20% remaining-time "
+    "trigger, so every policy still fires in incidents. That is why travel time tied and you pick "
+    "the least chatty setting. APA: p = .0002, no leading zero. Do not call F ≈ 0 a failed study.",
 )
 
-# ----- 8 percent -----
+
+# ----- 8 obj 4 times -----
 s = prs.slides.add_slide(blank)
 set_bg(s)
 bar(s, 0, 0.12)
-txt(s, 0.5, 0.22, 12, 0.4, "Objective 4 — reduction versus Dijkstra", 24, WHITE, True, "Cambria")
-add_picture_safe(s, FIG / "fig2_reduction_by_scenario.png", 0.25, 0.7, w=8.4)
-card(s, 8.75, 0.85, 4.2, 5.5)
-txt(s, 8.95, 1.0, 3.85, 0.35, "Headline numbers", 16, GOLD, True)
+txt(s, 0.5, 0.22, 12, 0.4, "Objective 4 — realised journey time", 24, WHITE, True, "Cambria")
+add_picture_safe(s, FIG / "fig1_travel_time_comparison.png", 0.25, 0.7, w=8.2)
+card(s, 8.55, 0.7, 4.4, 5.7)
+txt(s, 8.75, 0.85, 4.0, 0.35, "Mean travel time (s)", 16, GOLD, True)
 txt(
-    s,
-    8.95,
-    1.45,
-    3.85,
-    4.6,
-    "Incident  +16.19%\n  t = 26.43,  p < .001\n  ~1.03 replans\n\nPeak  +1.03%\n  t = 3.81,  p = .0002\n\nOff-peak  +0.01%\n  p = .90  (not significant)\n\nOverall  +5.74%\nvs static A*  +7.39%\nvs reactive A*  +0.61%\nvs oracle  −1.69%",
-    14,
-    WHITE,
+    s, 8.75, 1.3, 4.0, 4.9,
+    "Incident\n  Dijkstra  ≈  728 s\n  Framework  ≈  599 s\n  Reactive A*  ≈  604 s\n  Oracle  ≈  581 s\n\n"
+    "Peak\n  Framework  ≈  506 s\n  Dijkstra  ≈  513 s\n\n"
+    "Off-peak\n  Both  ≈  403 s\n\n"
+    "The framework does not beat the oracle. That is required if B4 is an honest ceiling.",
+    14, WHITE,
 )
 footer(s, 8)
 notes(
     s,
-    "7:30–9:00. The 16% bar is the result that matches the purpose: emergency time reduction when traffic actually breaks. +5.74% overall is a mixture — do not promise 16% on every trip. Versus reactive A* the extra is small: once the jam is visible, a 30-minute forecast adds little. That is honest. Green 15% line is a plot decoration, not a WHO target.",
+    "8:00–9:15. When the planned road is jammed, 728 seconds falls to about 599. Off-peak bars sit "
+    "together: empty roads do not need a 30-minute forecast. Peak is a small gap. Reactive A* is close "
+    "in incidents once the jam is visible — the extra value of the forecast is anticipatory, not magic.",
 )
 
-# ----- 9 latency -----
+
+# ----- 9 obj 4 percent -----
 s = prs.slides.add_slide(blank)
 set_bg(s)
 bar(s, 0, 0.12)
-txt(s, 0.5, 0.22, 12, 0.4, "Computational feasibility — well under 1 second", 24, WHITE, True, "Cambria")
-add_picture_safe(s, FIG / "fig4_computational_performance.png", 0.3, 0.7, w=8.3)
-card(s, 8.75, 0.9, 4.2, 5.4)
-txt(s, 8.95, 1.1, 3.85, 0.35, "What the dispatcher waits", 16, GOLD, True)
+txt(s, 0.5, 0.22, 12, 0.4, "Objective 4 — reduction versus Dijkstra", 24, WHITE, True, "Cambria")
+add_picture_safe(s, FIG / "fig2_reduction_by_scenario.png", 0.25, 0.7, w=8.3)
+card(s, 8.7, 0.7, 4.2, 5.7)
+txt(s, 8.9, 0.85, 3.85, 0.35, "Paired results (N = 300)", 16, GOLD, True)
 txt(
-    s,
-    8.95,
-    1.6,
-    3.85,
-    4.4,
-    "TD-A*  0.37 ms\nGRU  39.3 ms\nCombined  ≈ 40 ms\n\nBudget  1,000 ms\n≈ 25× headroom\n\nDo not quote 0.315 ms\nor 69.1 ms — those were\nthe old OSM / old GRU run.\n\nRouting is not the bottleneck.\nThe predictor is, and it still fits.",
-    15,
-    WHITE,
+    s, 8.9, 1.3, 3.85, 4.9,
+    "Incident  +16.19%\n  t = 26.43,  p < .001\n  ~1.03 replans / journey\n\n"
+    "Peak  +1.03%\n  t = 3.81,  p = .0002\n\n"
+    "Off-peak  +0.01%\n  p = .90  (not significant)\n\n"
+    "Overall  +5.74%\nvs static A*  +7.39%\nvs reactive A*  +0.61%\nvs oracle  −1.69%\n\n"
+    "Overall is a mixture. Do not promise 16% on every trip.",
+    13, WHITE,
 )
 footer(s, 9)
 notes(
     s,
-    "9:00–10:00. Combined 40 milliseconds is the DSS claim. 0.315 milliseconds was TD-A* on the old 397-node map and was never the full system wait. If asked about 3,175×, that used 0.315 against 1,000; the honest factor is about 25 times (1000/40).",
+    "9:15–10:45. The 16% bar is the result that matches the purpose: time reduction when traffic actually "
+    "breaks. Peak +1% is statistically detectable but operationally small. Off-peak ≈ 0% is a successful "
+    "negative control. Versus reactive A* the extra is small: once the jam is visible, a 30-minute "
+    "forecast adds little. That is an honest finding. If asked about literature: 16% sits near "
+    "Abuaisha et al. (2025) 12–18% on a different (fixed-route) problem; Werner et al. (2022) is the "
+    "closest router and does not use this GRU + δ loop.",
 )
 
-# ----- 10 interpret -----
+
+# ----- 10 latency -----
 s = prs.slides.add_slide(blank)
 set_bg(s)
 bar(s, 0, 0.12)
-txt(s, 0.5, 0.28, 12, 0.45, "What the results mean", 26, WHITE, True, "Cambria")
-blocks = [
-    ("Incident +16%", "The planned road is crawling. The system offers another corridor. About one suggestion per journey — not a siren."),
-    ("Peak +1%", "Almost every detector is already slow. Looking 15–30 minutes ahead helps only a little. Still statistically detectable."),
-    ("Off-peak ≈ 0%", "Empty roads: a predictor and a paper map should agree. This is a successful negative control, not a failed model."),
-    ("Literature", "16% sits near Abuaisha et al. (2025) 12–18% (fixed transit, different problem). Werner et al. (2022) is the closest router and does not replace the GRU + δ loop."),
-]
-for i, (h, b) in enumerate(blocks):
-    y = 0.9 + i * 1.4
-    card(s, 0.5, y, 12.3, 1.25)
-    txt(s, 0.75, y + 0.12, 11.8, 0.32, h, 16, GOLD, True)
-    txt(s, 0.75, y + 0.48, 11.8, 0.65, b, 15, WHITE)
+txt(s, 0.5, 0.22, 12, 0.4, "Computational feasibility", 24, WHITE, True, "Cambria")
+add_picture_safe(s, FIG / "fig4_computational_performance.png", 0.25, 0.7, w=8.3)
+card(s, 8.7, 0.7, 4.25, 5.7)
+txt(s, 8.9, 0.9, 3.9, 0.35, "Dispatcher wait", 16, GOLD, True)
+txt(
+    s, 8.9, 1.4, 3.9, 4.7,
+    "TD-A* search   0.37 ms\nGRU inference   39.3 ms\nCombined        ≈ 40 ms\n\n"
+    "Operational cap  1,000 ms\nHeadroom         ≈ 25×\n\n"
+    "Routing is not the bottleneck. The predictor is, and the loop still fits comfortably inside one second.\n\n"
+    "No preprocessing of the graph is required at this urban scale, so edge weights can refresh every five minutes.",
+    15, WHITE,
+)
 footer(s, 10)
 notes(
     s,
-    "10:00–11:30. This is the 4.6 discussion in spoken form. Do not defend 18.6% coverage or zero replans. Those belonged to the unused OSM map and the old remaining-time bug. If asked about Nairobi: method can transfer; these percentages cannot until local sensors exist.",
+    "10:45–11:30. Combined ≈ 40 milliseconds is the system claim. Quote both pieces if asked: "
+    "0.37 ms is search only. Werner et al. showed that time-dependent A* can be fast on very large "
+    "maps with preprocessing; at 207 nodes that preprocessing was unnecessary.",
 )
 
-# ----- 11 limits -----
+
+# ----- 11 limitations (academic; no bug list) -----
 s = prs.slides.add_slide(blank)
 set_bg(s)
 bar(s, 0, 0.12)
-txt(s, 0.5, 0.28, 12, 0.45, "Limits — and what we are not claiming", 26, WHITE, True, "Cambria")
-left = [
-    "METR-LA / PEMS-BAY are US freeways, not matatu traffic.",
-    "900-run routing is Los Angeles detectors only (100% coverage).",
-    "PEMS-BAY was a second-city GRU check, not a second routing city.",
-    "A 10–30% sparse-sensor Nairobi analogue has not been run.",
-]
-right = [
-    "Do not convert +16% into CBD minutes against the WHO 8-minute target.",
-    "Do not quote 3.42 mph, 17 epochs, 123 s, +0.17%, or 0 replans.",
-    "Do not say the journal article still uses the OSM 18.6% graph.",
-    "Further work: Bay routing graph; downsample 100% → 10–30%; field trial.",
-]
-card(s, 0.45, 0.95, 6.1, 5.2)
-txt(s, 0.7, 1.15, 5.7, 0.4, "True limits", 16, GOLD, True)
-txt(s, 0.7, 1.65, 5.7, 4.2, "\n\n".join("•  " + x for x in left), 15, WHITE)
-card(s, 6.8, 0.95, 6.1, 5.2)
-txt(s, 7.05, 1.15, 5.7, 0.4, "Do not say", 16, GOLD, True)
-txt(s, 7.05, 1.65, 5.7, 4.2, "\n\n".join("•  " + x for x in right), 15, WHITE)
+txt(s, 0.5, 0.28, 12, 0.45, "Limitations and further research", 26, WHITE, True, "Cambria")
+card(s, 0.45, 0.85, 6.1, 5.5)
+txt(s, 0.7, 1.05, 5.6, 0.35, "Limits of the present evidence", 16, GOLD, True)
+bullets(
+    s, 0.7, 1.55, 5.6, 4.5,
+    [
+        "METR-LA and PEMS-BAY are United States freeway traces. They do not reproduce Nairobi mixed traffic.",
+        "The 900 journeys used 100% detector coverage (207 nodes, 1,515 edges). Reported percentages describe that graph.",
+        "PEMS-BAY confirmed prediction in a second city (MAE 2.38 mph) but was not given a routing 900-run.",
+        "A sparse-sensor analogue (10–30% coverage) was not executed.",
+        "Single-vehicle simulation: multi-ambulance interference was not modelled.",
+    ],
+    size=14, space_after=10,
+)
+card(s, 6.8, 0.85, 6.1, 5.5)
+txt(s, 7.05, 1.05, 5.6, 0.35, "Suggested further work", 16, GOLD, True)
+bullets(
+    s, 7.05, 1.55, 5.6, 4.5,
+    [
+        "Downsample the present 100% detector graph to 10–30% coverage and repeat the 900-run, as a Nairobi-density analogue.",
+        "Build a PEMS-BAY routing graph and repeat Objectives 3 and 4.",
+        "Field trial with local sensors. The dispatcher remains in authority.",
+        "Multi-vehicle and live incident feeds lie beyond this proof of concept.",
+        "No conversion of +16% into Nairobi CBD minutes against an eight-minute target is claimed.",
+    ],
+    size=14, space_after=10,
+)
 footer(s, 11)
 notes(
     s,
-    "11:30–13:00. This is the 5.5 correction: we do not reduce the old 18.6% map further. Sparse Nairobi work starts from the 100% detector graph and downsamples it. Journal article v0.3 already uses 3.48, 16.19%, 207 nodes, δ = 0.20 — do not paste OSM 18.6% into the paper as the result graph.",
+    "11:30–13:00. This is the examiners’ honesty slide. State what was measured and what was not. "
+    "The next sparse-sensor study starts from the 100% detector graph and downsamples it. "
+    "Do not discuss shrinking an unused downtown map. If asked whether Nairobi now meets an "
+    "eight-minute target: no. Motivation is not measurement.",
 )
+
 
 # ----- 12 close -----
 s = prs.slides.add_slide(blank)
 set_bg(s)
 bar(s, 0, 0.12)
-txt(s, 0.5, 0.35, 12, 0.5, "Take-home for Objectives 3 and 4", 26, WHITE, True, "Cambria")
+txt(s, 0.5, 0.32, 12, 0.5, "Conclusions", 26, WHITE, True, "Cambria")
 take = [
-    ("1", "When a crash sits on the planned road, predictive remaining-time routing cut Dijkstra time by 16%."),
-    ("2", "δ in 5–20% did not change travel time. Recommend δ = 0.20 to limit extra alerts."),
-    ("3", "The dispatcher waits about 40 ms. The constraint is not compute; it is local sensor data."),
+    ("1", "Under incident conditions the framework cut Dijkstra travel time by 16.19% (about 599 s versus 728 s), with about one replan per journey."),
+    ("2", "Travel time did not differ among δ = 0.05–0.20. The operational default is δ = 0.20: the same quality, fewer extra alerts."),
+    ("3", "Combined GRU and routing latency is about 40 ms, well inside the 1,000 ms dispatch cap. The binding constraint is local sensor data, not compute."),
 ]
 for i, (n, t) in enumerate(take):
-    y = 1.15 + i * 1.35
+    y = 1.0 + i * 1.35
     card(s, 0.5, y, 12.3, 1.2)
     txt(s, 0.75, y + 0.3, 0.7, 0.55, n, 28, GOLD, True, "Cambria")
-    txt(s, 1.6, y + 0.28, 10.8, 0.7, t, 18, WHITE)
-txt(s, 0.5, 5.4, 12, 0.5, "Thank you  ·  Questions", 22, ICE, True, "Cambria", PP_ALIGN.CENTER)
+    txt(s, 1.6, y + 0.25, 10.8, 0.75, t, 16, WHITE)
+txt(s, 0.5, 5.25, 12.3, 0.45, "Thank you  ·  Questions", 22, ICE, True, "Cambria", PP_ALIGN.CENTER)
 txt(
-    s,
-    0.5,
-    6.0,
-    12,
-    0.4,
-    "Results: github.com/Freshia-Njoki/Emergency_Routing  ·  branch cursor/improve-ev-routing-framework-c48b",
-    13,
-    MUTED,
-    False,
-    "Calibri",
-    PP_ALIGN.CENTER,
+    s, 0.5, 5.8, 12.3, 0.55,
+    "Freshia Njoki Macharia  ·  PA206/S/25427/24  ·  Kirinyaga University",
+    14, MUTED, False, "Calibri", PP_ALIGN.CENTER,
 )
 footer(s, 12)
 notes(
     s,
-    "13:00–15:00 including questions. Repeat the three lines if asked to summarise. If asked which branch: cursor/improve-ev-routing-framework-c48b — not main. If asked to pull: git fetch && git checkout that branch && git pull, then PYTHONUTF8=1 and run_improved_pipeline.sh, or skip retrain and python -m src.evaluation.run_simulation --graph sensor if models already exist.",
+    "13:00–15:00 including questions. Repeat the three numbered lines if asked to summarise. "
+    "If asked for the code: the evaluation lives in the project repository; the defended tables "
+    "match results/full_report.txt on the improved-evaluation branch. If asked why two datasets: "
+    "prediction generalisation versus routing on one consistent graph. If asked about δ = 0.10: "
+    "that was the planned guess; measurement selected 0.20.",
 )
 
 prs.save(str(OUT))

@@ -3,6 +3,9 @@
 **Final results branch:** `cursor/improve-ev-routing-framework-c48b`  
 **Not** `main` (main still has the old evaluator).
 
+Seminar PPT (same file, 12 slides): `docs/Freshia_Njoki_Obj34_Findings_Presentation.pptx`.  
+Local run, 18.6%, APA, appendix: `docs/SEMINAR_AND_THESIS_QA.md`.
+
 After you pull that branch, use **only** the files listed under KEEP. Ignore the rest even if they look prettier.
 
 ---
@@ -107,12 +110,14 @@ export PYTHONIOENCODING=utf-8
 source venv/Scripts/activate
 pip install -r requirements.txt
 
-# Skip retrain if models/saved/gru_improved_best.keras (or .h5) already exists:
+# Skip retrain if models/saved/gru_improved_best.keras (or .h5) already exists.
+# If adj_mx.pkl failed with STRING opcode / quoted, pull this branch first
+# (adj_mx.npz is Windows-safe). Do not mix a new MAE with the old 900-run tables.
 python -m src.evaluation.run_simulation --graph sensor
 python run_full_framework.py
 ```
 
-Full retrain (optional, 10–40 min CPU):
+Full retrain (optional, 10–40 min CPU; overwrites the 3.48 mph checkpoint):
 
 ```bash
 bash run_improved_pipeline.sh

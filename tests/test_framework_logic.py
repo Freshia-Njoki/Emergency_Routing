@@ -143,5 +143,27 @@ class ControllerPolicyTests(unittest.TestCase):
         self.assertTrue(np.all(persisted[:, 0] <= 20.0 + 1e-9))
 
 
+class AdjacencyLoadTests(unittest.TestCase):
+    def test_python2_pickle_with_windows_crlf(self):
+        from src.routing.graph_builder import _unpickle_bytes
+
+        raw = b"(lp0\nS'773869'\np1\naS'767541'\np2\na."
+        crlf = raw.replace(b"\n", b"\r\n")
+        data = _unpickle_bytes(crlf)
+        self.assertEqual(list(data), ["773869", "767541"])
+
+    def test_load_metr_la_adjacency_if_present(self):
+        from src.routing.graph_builder import load_adjacency_matrix
+
+        pkl = os.path.join("data", "raw", "sensor_graph", "adj_mx.pkl")
+        npz = os.path.join("data", "raw", "sensor_graph", "adj_mx.npz")
+        path = pkl if os.path.exists(pkl) else npz
+        if not os.path.exists(path):
+            self.skipTest("sensor adjacency not in this checkout")
+        sensor_ids, adj_mx = load_adjacency_matrix(path)
+        self.assertEqual(adj_mx.shape, (207, 207))
+        self.assertEqual(len(sensor_ids), 207)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -58,6 +58,15 @@ def download_sensor_graph(out_dir="data/raw/sensor_graph"):
             continue
         print(f"Downloading {name}...")
         download_file(url, path)
+    npz_path = os.path.join(out_dir, "adj_mx.npz")
+    pkl_path = os.path.join(out_dir, "adj_mx.pkl")
+    if os.path.exists(pkl_path) and not os.path.exists(npz_path):
+        try:
+            from src.routing.graph_builder import export_adjacency_npz
+            export_adjacency_npz(pkl_path, npz_path)
+            print(f"OK wrote {npz_path} (Windows-safe adjacency)")
+        except Exception as exc:
+            print(f"WARN could not write adj_mx.npz: {exc}")
     return out_dir
 
 

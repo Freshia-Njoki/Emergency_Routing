@@ -38,11 +38,11 @@ Use APA in-text. These do **not** replace Dijkstra or Cho.
 1. **Jiang and Luo (2022)** — *Expert Systems with Applications*. Survey of graph neural nets for traffic forecasting. **Use:** explain why GNN/DCRNN can beat GRU on MAE, and why you still used GRU (latency).  
 2. **Yin et al. (2022)** — *IEEE T-ITS*. Survey of deep traffic prediction methods and open problems. **Use:** Gap 1 (prediction vs planning still split).  
 3. **Chowdhury et al. (2023)** — *Sensors*, 23(11), 5324. IoT emergency-vehicle ITS review. **Use:** EV papers mostly detect/pre-empt, not predictive TDSP.  
-4. **Abdullah et al. (2023)** — *Sustainability*, 15(7), 5716. Soft-GRU congestion prediction for smart cities. **Use:** GRU remains a serious congestion tool, not a toy.  
-5. **Zhang, Khalgui and Li (2021)** — *Sensors*, 21(21), 7330. Predictive ITS / IoV congestion. **Use:** integration exists outside emergency dispatch; your δ-controller is the EV-specific piece.  
+4. **Abdullah et al. (2023)** — *Sustainability*, 15(7), **5949**. Soft-GRU congestion prediction for smart cities. **Use:** GRU remains a serious congestion tool, not a toy. DOI `10.3390/su15075949` (not 5716). Author **Alharbi**, not Alhussan.  
+5. **Zhang, Khalgui and Li (2021)** — *Sensors*, 21(21), 7330. First author **Le Zhang**. Predictive ITS / IoV congestion. **Use:** integration exists outside emergency dispatch; your δ-controller is the EV-specific piece.  
 6. **Lan et al. (2022)** — ICML, DSTAGNN. Dynamic spatial-temporal graph net. **Use:** SOTA spatial models exist; you declined them for sub-second dispatch.  
 7. **Shao et al. (2022)** — KDD, pre-trained STGNN. **Use:** pre-training helps multivariate series; out of scope for a two-layer GRU DSS.  
-8. **Wang et al. (2025)** — spatio-temporal distillation (already in some drafts). **Use:** efficiency trend supports a small student-like GRU rather than a giant teacher GNN.
+8. **Zhang, Gao, Wang, Yiu and Yin (2025)** — AAAI 39(1), 1093–1101, spatial-temporal distillation. **Use:** efficiency trend supports a small student-like GRU rather than a giant teacher GNN. You did **not** distill. In-text: `Zhang, Gao, et al. (2025)` (not Wang et al. arXiv).
 
 Also add if missing from the list but cited in text: **Dijkstra (1959)**, **Cho et al. (2014)**, **Delling and Wagner (2009)**, **Ouyang et al. (2020)**.
 
