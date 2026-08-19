@@ -2,6 +2,8 @@
 
 **Current thesis word count (GitHub DOCX, body + tables): about 14,577 words.**  
 KyU master’s minimum: **20,000**. You need roughly **5,500+ more words of real content**, not repeated sentences.  
+**Chapter 1 first:** use `docs/CHAPTER1_EDIT_GUIDE.md`. Work by **chapter → section → sentence**. Word balloon IDs (`C21`) are internal labels, not a count — do not start numbering from C21. Chapter 1 has only four balloons (Reis, Ikram, 18.6%, PEMS-BAY).
+
 Paste the **INSERT** blocks in Section D into the named chapter. After pasting, re-count in Word (Review → Word Count). Aim for 20,200–21,000.
 
 **Do not regenerate the whole DOCX.** Work balloon by balloon. Results in Chapters 4–5 must follow **`docs/research_article_v0.3.md`** and `results/full_report.txt` (branch `cursor/improve-ev-routing-framework-c48b`). The old 78% / 123 s / 0-replan tables are **wrong**.
