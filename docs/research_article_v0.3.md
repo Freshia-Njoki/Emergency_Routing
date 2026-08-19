@@ -57,7 +57,7 @@ Three theories bound the artefact. **Time-dependent shortest path (TDSP)** theor
 
 ### 2.3 Identification of Research Gaps
 
-Four gaps follow. Gap 1: prediction and time-dependent routing are rarely one dispatch artefact (Qi et al., 2025). Gap 2: threshold policies for mid-journey recommendations are not systematically swept over {5, 10, 15, 20}%. Gap 3: MAE and route time are usually reported in different papers, so prediction error never appears as travel-time regret. Gap 4: Sub-Saharan mixed-traffic deployment remains untested on local sensors; this study can only offer a transferable method, not Nairobi measurements.
+Four gaps follow. Gap 1: prediction and time-dependent routing are often studied apart; a few systems combine live or predicted times with search, but not as an emergency GRU, time-dependent A*, and remaining-time threshold under a one-second dispatch budget (Qi et al., 2025; Werner et al., 2022; Chowdhury et al., 2023). Gap 2: threshold policies for mid-journey recommendations are not systematically swept over {5, 10, 15, 20}%. Gap 3: MAE and route time are usually reported in different papers, so prediction error never appears as travel-time regret. Gap 4: Sub-Saharan mixed-traffic deployment remains untested on local sensors; this study can only offer a transferable method, not Nairobi measurements.
 
 ### 2.4 Conceptual Framework
 
@@ -95,7 +95,7 @@ A sliding window is not a desktop setting. At each five-minute advance the oldes
 
 ### 3.6 Road Graph
 
-The routing graph was the METR-LA detector adjacency (207 nodes, 1,515 edges, 100% instrumented). Downtown OpenStreetMap (397 nodes, 18.6% mapped) was retained only as an optional `--graph osm` mode; it was **not** the graph behind the headline 900-run tables, because unmapped edges had previously collapsed methods toward a fake 30 mph free-flow.
+The routing graph was the METR-LA detector adjacency (207 nodes, 1,515 edges, every edge instrumented). Downtown OpenStreetMap extracts were not used for the reported journeys.
 
 ### 3.7 Evaluation Protocol and Analysis
 
@@ -158,21 +158,21 @@ ANOVA: *F* = 0.001, *p* = 1.00. Unlike earlier drafts that reported **zero** rep
 
 Mean incident journey times were about 599 s for the framework versus 727 s for Dijkstra. Peak-hour means were about 506 s versus 513 s. Off-peak means were essentially tied near 403 s. TD-A* latency averaged **0.37 ms**; GRU inference **39.3 ms**; combined **~40 ms**, far below 1,000 ms.
 
-These numbers **replace** v0.2 claims of 78.4% reduction, 123 s versus 588 s, 1,200 experiments, 0.18 ms routing, 17-epoch MAE 3.42, OSM 18.6% mapping as the headline graph, MinMaxScaler-only training, and “PEMS-BAY left as future work.” Those figures mixed scaled values with predicted costs or used a graph on which most edges ignored the GRU.
-
 ### 4.5 Interpretation of Key Results
 
 In one sentence: **when a road on the planned path is slowed, the system notices and offers another path, saving about one-sixth of Dijkstra time; when roads are already empty, prediction cannot invent a shortcut.**
 
 Incident +16% sits in the same band as Abuaisha et al.’s 12–18% replanning gains, despite a different domain (unconstrained EV paths versus fixed transit). It does not match Sasikala et al.’s 35%, which came from signal priority, not TDSP. Peak +1% is small but statistically detectable: looking 15–30 minutes ahead is only slightly better than “now” when congestion is network-wide. Off-peak zero is a successful sanity check, not a failed model. The −1.69% oracle gap is required if B4 is honest. The +0.61% versus reactive A* is the residual value of the GRU horizon after a snapshot replan has already seen the incident.
 
-Latency results exceed the DSS requirement by more than an order of magnitude. That, not a 78% travel-time claim, is the computational contribution.
+Latency results exceed the DSS requirement by more than an order of magnitude. That, not a large travel-time claim in every scenario, is the computational contribution.
 
 ### 4.6 Integration with Literature and Implications
 
 Werner et al. (2022) remain valuable and are **not** withdrawn: they show TD-A* can be fast; this artefact shows a **learned** five-minute predictor plus a **dispatcher threshold** can be fast **and** reduce incident time without continental preprocessing. Zhang et al. (2022) share adaptive planning; they do not report this GRU–δ sweep on METR-LA. Chowdhury et al. (2023) map IoT EV services; this paper fills their missing predictive-routing cell. Jiang and Luo (2022) and Yin et al. (2022) explain why a reviewer might demand a GNN: the answer is the 40 ms combined budget and Jeong-style evidence that short-horizon GRU error is already usable as edge cost.
 
 For Kenyan authorities the implication is infrastructural: a method of this type needs detector or probe speeds at a few-minute cadence. The numerical +16% is **not** a promise that Nairobi ambulances will shed 16% of 18–25 minutes until local data exist.
+
+Figures to embed at submission (branch `cursor/improve-ev-routing-framework-c48b`): conceptual loop as Figure 1; `visualizations/improved_gru_training.png`; `results/simulation/figures/fig1_travel_time_comparison.png`; `fig2_reduction_by_scenario.png`; `fig3_delta_sensitivity.png`; `fig4_computational_performance.png`. Do not embed the old OSM coverage map or the 17-epoch training plots.
 
 ## 5. Conclusion, Limitations and Future Work
 
@@ -182,7 +182,7 @@ The study built a three-component emergency routing DSS. Separate GRUs on METR-L
 
 ### 5.2 Limitations
 
-METR-LA/PEMS-BAY are freeway, not matatu, streams. Routing tables use the Los Angeles detector graph, not a Nairobi OSM extract. PEMS-BAY was not given a parallel 900-journey routing campaign. Shapiro–Wilk tests often rejected normality; *t*-tests are reported as in the thesis protocol and should be read with medians. Infeasible (disconnected) graphs were excluded by OD sampling rather than stress-tested as a user-interface mode.
+METR-LA/PEMS-BAY are freeway, not matatu, streams. Routing tables use the Los Angeles detector graph, not a Nairobi street extract. PEMS-BAY was not given a parallel 900-journey routing campaign. Shapiro–Wilk tests often rejected normality; *t*-tests are reported as in the thesis protocol and should be read with medians. Infeasible (disconnected) graphs were excluded by OD sampling rather than stress-tested as a user-interface mode.
 
 ### 5.3 Future Research Directions
 

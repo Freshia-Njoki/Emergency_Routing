@@ -1,6 +1,10 @@
 # Improved GRU emergency-routing framework
 
-Branch: `cursor/improve-ev-routing-framework-c48b`  
+**Final accurate results live on** `cursor/improve-ev-routing-framework-c48b` (not `main`).
+
+Pull, run, and figure-to-caption map: `docs/FIGURE_AND_TABLE_MAP.md`.  
+Obj 3–4 15-minute deck: `docs/Freshia_Njoki_Obj34_Findings_Presentation.pptx` (notes under each slide).
+
 This branch is **not** merged into `main`. Pull it locally, run the scripts, then copy the new tables into Chapters 4–5.
 
 ## Recommendation: do **not** train both datasets as one model
