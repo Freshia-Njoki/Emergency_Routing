@@ -50,7 +50,37 @@ OBJECTIVE 2 -- PEMS-BAY CROSS-DATASET VALIDATION
 OBJECTIVES 3 & 4 -- RUNNING SIMULATION
 =================================================================
   Ground-truth evaluation, sliding-window GRU, path-targeted incidents.
-  Using existing results: results/simulation/simulation_results.csv
+  Simulation completed in 252.7s
+  0.0000
+peak_hour 0.15 75    1.05  4.73    0.00   1.925   0.0581         NO            0.0000
+peak_hour 0.20 75    1.16  4.76    0.00   2.111   0.0381        YES            0.0000
+ off_peak 0.05 75    0.01  1.51    0.00   0.062   0.9509         NO            0.0000
+ off_peak 0.10 75    0.01  1.51    0.00   0.062   0.9509         NO            0.0000
+ off_peak 0.15 75    0.01  1.51    0.00   0.062   0.9509         NO            0.0000
+ off_peak 0.20 75    0.01  1.51    0.00   0.062   0.9509         NO            0.0000
+ incident 0.05 75   16.26 10.75   13.97  13.097   0.0000        YES            0.0252
+ incident 0.10 75   16.24 10.76   13.97  13.078   0.0000        YES            0.0252
+ incident 0.15 75   16.12 10.64   13.97  13.118   0.0000        YES            0.0252
+ incident 0.20 75   16.13 10.50   13.97  13.299   0.0000        YES            0.0280
+
+[Stats] Saved -> results\simulation\statistical_tests.csv
+========================================================================
+
+  ONE-WAY ANOVA - Effect of delta on travel time reduction
+  F=0.001, p=1.0000 -> NOT significant at alpha=0.05
+========================================================================
+
+
+[Figures] OK All figures saved to: results\simulation\figures/
+  fig1_travel_time_comparison.png
+  fig2_reduction_by_scenario.png
+  fig3_delta_sensitivity.png
+  fig4_computational_performance.png
+  fig5_summary_poster.png  <- publication-ready poster
+[OK] Summary -> results\simulation\summary_statistics.csv
+
+DONE
+
 
 =================================================================
 OBJECTIVE 3 -- THRESHOLD POLICY ANALYSIS
@@ -60,10 +90,10 @@ OBJECTIVE 3 -- THRESHOLD POLICY ANALYSIS
 
   Delta | Mean Reduction vs B1 | Avg Replannings | Avg Latency
   -----------------------------------------------------------------
-  0.05 | +5.726%            | 0.45            | 0.370 ms
-  0.10 | +5.748%            | 0.44            | 0.367 ms
-  0.15 | +5.726%            | 0.43            | 0.368 ms
-  0.20 | +5.767%            | 0.39            | 0.373 ms
+  0.05 | +5.726%            | 0.45            | 0.737 ms
+  0.10 | +5.748%            | 0.44            | 0.738 ms
+  0.15 | +5.726%            | 0.43            | 0.723 ms
+  0.20 | +5.767%            | 0.39            | 0.754 ms
 
   ANOVA: F=0.001, p=1.0000
   Recommended delta = 0.2 (best mean reduction vs Dijkstra)
@@ -80,9 +110,9 @@ OBJECTIVE 4 -- FRAMEWORK EVALUATION vs BASELINES
   B4: Oracle A*                     -1.694%    5.64%    0.00%
 
   COMPUTATIONAL PERFORMANCE:
-  TD-A* routing latency  : 0.369 ms (target < 1,000 ms)
-  GRU inference time     : 39.3 ms
-  Combined response time : ~39.7 ms
+  TD-A* routing latency  : 0.738 ms (target < 1,000 ms)
+  GRU inference time     : 81.0 ms
+  Combined response time : ~81.7 ms
   Avg replannings        : 0.43 per journey
 
   BY SCENARIO:
@@ -130,11 +160,11 @@ VISUALISATIONS GENERATED
 =================================================================
   gru_predictions.png (227 KB)
   gru_training_history.png (99 KB)
-  improved_gru_predictions.png (189 KB)
-  improved_gru_training.png (93 KB)
-  obj3_delta_sensitivity.png (56 KB)
-  obj4_latency_distribution.png (46 KB)
-  obj4_travel_time_reduction.png (55 KB)
+  improved_gru_predictions.png (182 KB)
+  improved_gru_training.png (87 KB)
+  obj3_delta_sensitivity.png (51 KB)
+  obj4_latency_distribution.png (39 KB)
+  obj4_travel_time_reduction.png (50 KB)
   prediction_comparison_both_datasets.png (129 KB)
   sensor_coverage_map.png (742 KB)
   traffic_heatmap.png (185 KB)
@@ -144,28 +174,28 @@ VISUALISATIONS GENERATED
 =================================================================
 RESULTS FILES
 =================================================================
-  results/statistical_tests.csv (0 KB)
-  results/evaluation_results.csv (334 KB)
-  results/full_report.txt (7 KB)
-  results/cross_validation_summary.csv (0 KB)
-  results/summary_stats.csv (2 KB)
-  results/figures/fig3_delta_sensitivity.png (184 KB)
-  results/figures/fig2_reduction_by_scenario.png (136 KB)
-  results/figures/fig1_travel_time_comparison.png (119 KB)
-  results/figures/fig4_computational_performance.png (205 KB)
-  results/figures/fig5_summary_poster.png (340 KB)
-  results/simulation/statistical_tests.csv (0 KB)
-  results/simulation/summary_statistics.csv (1 KB)
-  results/simulation/simulation_results.csv (334 KB)
-  results/simulation/figures/fig3_delta_sensitivity.png (218 KB)
-  results/simulation/figures/fig2_reduction_by_scenario.png (172 KB)
-  results/simulation/figures/fig1_travel_time_comparison.png (118 KB)
-  results/simulation/figures/fig4_computational_performance.png (217 KB)
-  results/simulation/figures/fig5_summary_poster.png (363 KB)
-  results/sliding/evaluation_results.csv (334 KB)
-  results/sliding/summary_stats.csv (1 KB)
-  results/sliding/figures/fig3_delta_sensitivity.png (182 KB)
-  results/sliding/figures/fig2_reduction_by_scenario.png (165 KB)
-  results/sliding/figures/fig1_travel_time_comparison.png (112 KB)
-  results/sliding/figures/fig4_computational_performance.png (9249 KB)
-  results/sliding/figures/fig5_summary_poster.png (340 KB)
+  results\cross_validation_summary.csv (0 KB)
+  results\evaluation_results.csv (335 KB)
+  results\full_report.txt (9 KB)
+  results\statistical_tests.csv (0 KB)
+  results\summary_stats.csv (2 KB)
+  results\figures\fig1_travel_time_comparison.png (119 KB)
+  results\figures\fig2_reduction_by_scenario.png (136 KB)
+  results\figures\fig3_delta_sensitivity.png (184 KB)
+  results\figures\fig4_computational_performance.png (205 KB)
+  results\figures\fig5_summary_poster.png (340 KB)
+  results\simulation\simulation_results.csv (334 KB)
+  results\simulation\statistical_tests.csv (0 KB)
+  results\simulation\summary_statistics.csv (1 KB)
+  results\simulation\figures\fig1_travel_time_comparison.png (107 KB)
+  results\simulation\figures\fig2_reduction_by_scenario.png (155 KB)
+  results\simulation\figures\fig3_delta_sensitivity.png (199 KB)
+  results\simulation\figures\fig4_computational_performance.png (202 KB)
+  results\simulation\figures\fig5_summary_poster.png (326 KB)
+  results\sliding\evaluation_results.csv (335 KB)
+  results\sliding\summary_stats.csv (1 KB)
+  results\sliding\figures\fig1_travel_time_comparison.png (112 KB)
+  results\sliding\figures\fig2_reduction_by_scenario.png (165 KB)
+  results\sliding\figures\fig3_delta_sensitivity.png (182 KB)
+  results\sliding\figures\fig4_computational_performance.png (9249 KB)
+  results\sliding\figures\fig5_summary_poster.png (340 KB)
