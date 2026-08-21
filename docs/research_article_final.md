@@ -59,7 +59,7 @@ The Design Science Research Methodology of Peffers et al. (2007) supplies the pr
 
 ### 2.2 Review of Related Empirical Studies
 
-**Classical pathfinding.** Dijkstra (1959) and A* (Hart et al., 1968) remain the operational standard in many computer-aided dispatch stacks (Hagberg et al., 2024). Bidirectional search, contraction hierarchies, and landmark heuristics accelerate static queries but assume weights that do not jump every five minutes (Gong et al., 2023). Those accelerators are not withdrawn; they solve a different problem. The present artefact needs a searcher that remains correct when every edge weight is rewritten from a 30-minute forecast at detector resolution.
+**Classical pathfinding.** Dijkstra (1959) and A* (Hart et al., 1968) remain the operational standard in many computer-aided dispatch stacks (Hagberg et al., 2024). Bidirectional search, contraction hierarchies, and landmark heuristics accelerate static queries but assume weights that do not jump every five minutes (Gong et al., 2024). Those accelerators are not withdrawn; they solve a different problem. The present artefact needs a searcher that remains correct when every edge weight is rewritten from a 30-minute forecast at detector resolution.
 
 **Traffic prediction.** Li et al. (2018) released METR-LA and PEMS-BAY and the diffusion convolutional recurrent network. Citing that paper does not mean DCRNN was implemented; the present predictor is a two-layer GRU on those archives. Subsequent surveys document a race among graph neural networks and transformers (Jiang & Luo, 2022; Yin et al., 2022). Hybrid convolutional–GRU models can cut error at higher inference cost (Ma et al., 2023). Compact students can approach heavier teachers by distillation (Zhang, Gao, et al., 2025); this study did not distill. For a dispatch loop, Jeong et al. (2021) remains the relevant published trade-off: stacked GRU is accurate enough on 15–30 minute highway speeds and cheap enough to call repeatedly. Abdullah et al. (2023) likewise retained a gated recurrent architecture when the operational constraint was timely congestion estimates rather than leaderboard MAE.
 
@@ -285,7 +285,7 @@ Dreyfus, S. E. (1969). An appraisal of some shortest-path algorithms. *Operation
 
 Golub, A., Stevens, M., Klopp, J. M., & Martin, E. (2021). Addressing public transit challenges in Sub-Saharan African cities. *Transport Policy, 105*, 62–72.
 
-Gong, Z., et al. (2023). Querying shortest path on large time-dependent road networks with shortcuts. In *Proceedings of IEEE ICDE*.
+Gong, Z., Zeng, Y., & Chen, L. (2024). Querying shortest path on large time-dependent road networks with shortcuts. In *Proceedings of the 2024 IEEE 40th International Conference on Data Engineering (ICDE)* (pp. 4532–4544). IEEE. https://doi.org/10.1109/ICDE60146.2024.00345
 
 Gorry, G. A., & Scott Morton, M. S. (1971). A framework for management information systems. *Sloan Management Review, 13*(1), 55–70.
 
@@ -293,7 +293,7 @@ Hagberg, A. A., Schult, D. A., & Swart, P. J. (2024). *NetworkX 3.5 documentatio
 
 Hart, P. E., Nilsson, N. J., & Raphael, B. (1968). A formal basis for the heuristic determination of minimum cost paths. *IEEE Transactions on Systems Science and Cybernetics, 4*(2), 100–107.
 
-Hugar, S. M., et al. (2025). Real-time adaptive traffic management system for emergency vehicle prioritisation. In *Proceedings of IEEE CNC*.
+Hugar, S. M., Prabaharan, S. I., Priyadharshini, S., Sheeba, D., Patturose, J. G. B., & Allada, S. R. (2025). Real-time adaptive traffic management system for emergency vehicle prioritisation. In *Proceedings of the 2025 IEEE International Conference on Communication Networks and Computing (CNC)* (pp. 1237–1242). IEEE. https://doi.org/10.1109/CNC68716.2025.11484833
 
 Ikram, T., Sultana, T., Nawaz, M., & Hassan, M. F. (2025). Digital twin assisted real-time emergency vehicle navigation for resource optimization and reroute planning. *International Journal of Parallel, Emergent and Distributed Systems, 40*(2), 112–128.
 
@@ -301,7 +301,7 @@ INRIX. (2024). *INRIX 2024 global traffic scorecard*.
 
 International Transport Forum. (2023). *ITF transport outlook 2023*. OECD Publishing. https://doi.org/10.1787/b6cc9ad5-en
 
-Jaballah, R., et al. (2021). The time-dependent shortest path and vehicle routing problem. *INFOR, 59*(3), 386–413.
+Jaballah, R., Veenstra, M., Coelho, L. C., & Renaud, J. (2021). The time-dependent shortest path and vehicle routing problem. *INFOR, 59*(4), 592–622. https://doi.org/10.1080/03155986.2021.1973785
 
 Jeong, M.-H., Lee, T.-Y., Jeon, S.-B., & Youm, M. (2021). Highway speed prediction using gated recurrent unit neural networks. *Applied Sciences, 11*(7), 3059. https://doi.org/10.3390/app11073059
 
@@ -319,7 +319,7 @@ Qi, P., Pan, C., Xu, X., Wang, J., Liang, J., & Zhou, W. (2025). A review of dyn
 
 Reis, D., Odhiambo, L., Wachira, B., Kamau, N., & Temu, A. (2025). Leveraging innovative technology and health data to enhance access to emergency care and referral services in Kenya. *Oxford Open Digital Health, 3*(1). https://doi.org/10.1093/oodh/oqaf004
 
-Sasikala, N., et al. (2025). Emergency traffic prioritization system with priority-based dynamic route optimization. In *Proceedings of IEEE CONIT*.
+Sasikala, N., Sridhar, S., Reddy, S. H., John, S., & Shrinikethan, S. (2025). Emergency traffic prioritization system with priority-based dynamic route optimization and IoT-enabled dynamic signal control. In *Proceedings of the 2025 5th International Conference on Intelligent Technologies (CONIT)*. IEEE. https://doi.org/10.1109/CONIT65521.2025.11166819
 
 Werner, N., Buchhold, M., Storandt, S., & Wagner, D. (2022). Combining predicted and live traffic with time-dependent A* potentials. In *Proceedings of SEA 2022*. https://doi.org/10.4230/LIPIcs.SEA.2022.18
 
@@ -335,4 +335,4 @@ Zhang, Q., Gao, X., Wang, H., Yiu, S. M., & Yin, H. (2025). Efficient traffic pr
 
 Zhang, Z., Sun, Y., & Liu, Q. (2022). An adaptive route planning method of connected vehicles for improving the transport efficiency. *ISPRS International Journal of Geo-Information, 11*(1), 39.
 
-Zohir, H. M., et al. (2025). Advancements in accident-aware traffic management: A comprehensive review of V2X-based route optimization. *Scientific Reports, 15*, 2847.
+Zohir, H. M., Ismael, I. M., El-Gendy, E. M., & Saafan, M. M. (2025). Advancements in accident-aware traffic management: A comprehensive review of V2X-based route optimization. *Scientific Reports, 15*, 35041. https://doi.org/10.1038/s41598-025-20878-x
