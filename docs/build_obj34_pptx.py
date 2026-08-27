@@ -1,14 +1,12 @@
 """Build the 15-minute findings seminar PPT with speaker notes.
 
-Outputs:
+Output:
   docs/Presentation_GRU_Emergency_Routing_Findings.pptx
-  docs/Freshia_Njoki_Obj34_Findings_Presentation.pptx  (alias copy)
 
 Run: python docs/build_obj34_pptx.py
 Open Presenter View for speaker notes.
 """
 from pathlib import Path
-import shutil
 
 from pptx import Presentation
 from pptx.dml.color import RGBColor
@@ -24,8 +22,7 @@ MUTED = RGBColor(0xA0, 0xB0, 0xD0)
 CARD = RGBColor(0x2A, 0x35, 0x7A)
 
 ROOT = Path(__file__).resolve().parents[1]
-OUT_PRIMARY = ROOT / "docs" / "Presentation_GRU_Emergency_Routing_Findings.pptx"
-OUT_ALIAS = ROOT / "docs" / "Freshia_Njoki_Obj34_Findings_Presentation.pptx"
+OUT = ROOT / "docs" / "Presentation_GRU_Emergency_Routing_Findings.pptx"
 FIG = ROOT / "results" / "simulation" / "figures"
 FIG_LAT = ROOT / "docs" / "article_figures" / "figure6_latency.png"
 TOTAL = 13
@@ -674,7 +671,5 @@ Recommendations: deploy where sensors exist; build local archives before claimin
 The full design, baselines, and evaluation are documented in the companion journal article. Thank you.""",
 )
 
-prs.save(str(OUT_PRIMARY))
-shutil.copy2(OUT_PRIMARY, OUT_ALIAS)
-print(f"Wrote {OUT_PRIMARY} ({len(prs.slides)} slides)")
-print(f"Copied to {OUT_ALIAS}")
+prs.save(str(OUT))
+print(f"Wrote {OUT} ({len(prs.slides)} slides)")
