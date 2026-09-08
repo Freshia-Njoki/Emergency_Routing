@@ -40,34 +40,64 @@ def download_file(url, output_path):
         print(f"\n❌ Error: {e}")
         return False
 
+def download_sensor_graph(out_dir="data/raw/sensor_graph"):
+    """METR-LA detector adjacency used as the routing graph (DCRNN release)."""
+    os.makedirs(out_dir, exist_ok=True)
+    files = {
+        "adj_mx.pkl": (
+            "https://raw.githubusercontent.com/liyaguang/DCRNN/master/data/sensor_graph/adj_mx.pkl"
+        ),
+        "graph_sensor_locations.csv": (
+            "https://raw.githubusercontent.com/liyaguang/DCRNN/master/data/sensor_graph/graph_sensor_locations.csv"
+        ),
+    }
+    for name, url in files.items():
+        path = os.path.join(out_dir, name)
+        if os.path.exists(path) and os.path.getsize(path) > 100:
+            print(f"OK {path} already exists")
+            continue
+        print(f"Downloading {name}...")
+        download_file(url, path)
+    npz_path = os.path.join(out_dir, "adj_mx.npz")
+    pkl_path = os.path.join(out_dir, "adj_mx.pkl")
+    if os.path.exists(pkl_path) and not os.path.exists(npz_path):
+        try:
+            from src.routing.graph_builder import export_adjacency_npz
+            export_adjacency_npz(pkl_path, npz_path)
+            print(f"OK wrote {npz_path} (Windows-safe adjacency)")
+        except Exception as exc:
+            print(f"WARN could not write adj_mx.npz: {exc}")
+    return out_dir
+
+
 def main():
     """Download datasets"""
-    
     os.makedirs('data/raw', exist_ok=True)
-    
+
     print("=" * 60)
     print("DOWNLOADING TRAFFIC DATASETS")
     print("=" * 60)
-    
-    # Alternative download links
+
     datasets = {
         'metr-la.h5': 'https://drive.google.com/uc?export=download&id=1pAGRfzMx6K9WWsfDcD1NMbIif0T0saFC',
         'pems-bay.h5': 'https://drive.google.com/uc?export=download&id=1wD-mHlqAb2mtHOe_68fZvDh1LpDegMMq'
     }
-    
+
     for filename, url in datasets.items():
         output_path = f"data/raw/{filename}"
-        
+
         if os.path.exists(output_path):
-            print(f"\n✓ {output_path} already exists")
+            print(f"\nOK {output_path} already exists")
             size_mb = os.path.getsize(output_path) / (1024 * 1024)
             print(f"  Size: {size_mb:.2f} MB")
         else:
             print(f"\nDownloading {filename}...")
             download_file(url, output_path)
-    
+
+    download_sensor_graph()
+
     print("\n" + "=" * 60)
-    print("✅ DOWNLOAD COMPLETE!")
+    print("DOWNLOAD COMPLETE")
     print("=" * 60)
 
 if __name__ == "__main__":

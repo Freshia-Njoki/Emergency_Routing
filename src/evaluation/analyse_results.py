@@ -110,7 +110,7 @@ def fig1_travel_time_comparison(df: pd.DataFrame):
     path = os.path.join(FIG_DIR, 'fig1_travel_time_comparison.png')
     plt.savefig(path)
     plt.close()
-    print(f"[Figures] Saved → {path}")
+    print(f"[Figures] Saved -> {path}")
 
 
 # ── Fig 2: Travel time reduction % per scenario — bar + error bars ────────────
@@ -147,7 +147,8 @@ def fig2_reduction_by_scenario(df: pd.DataFrame):
                            rotation=10)
         ax.axhline(15, color='green', linestyle=':', linewidth=1.2,
                    label='15% min target' if scenario == 'peak_hour' else '')
-        ax.set_ylim(bottom=0)
+        ymin = min(0.0, min(df[c].min() for c, _, _ in comparisons if c in df.columns) - 2)
+        ax.set_ylim(bottom=ymin)
 
     axes[0].set_ylabel('Travel time reduction (%)')
     axes[0].legend(fontsize=8)
@@ -157,7 +158,7 @@ def fig2_reduction_by_scenario(df: pd.DataFrame):
     path = os.path.join(FIG_DIR, 'fig2_reduction_by_scenario.png')
     plt.savefig(path)
     plt.close()
-    print(f"[Figures] Saved → {path}")
+    print(f"[Figures] Saved -> {path}")
 
 
 # ── Fig 3: δ threshold sensitivity ───────────────────────────────────────────
@@ -198,7 +199,7 @@ def fig3_delta_sensitivity(df: pd.DataFrame):
 
     axes[0].set_ylabel('Travel time reduction vs Dijkstra (%)')
     axes[0].set_title('Reduction % vs threshold δ')
-    axes[0].set_ylim(bottom=0)
+    axes[0].axhline(0, color='black', linewidth=0.8)
 
     axes[1].set_ylabel('Mean replannings per journey')
     axes[1].set_title('Update frequency vs threshold δ\n(lower δ = more updates)')
@@ -210,7 +211,7 @@ def fig3_delta_sensitivity(df: pd.DataFrame):
     path = os.path.join(FIG_DIR, 'fig3_delta_sensitivity.png')
     plt.savefig(path)
     plt.close()
-    print(f"[Figures] Saved → {path}")
+    print(f"[Figures] Saved -> {path}")
 
 
 # ── Fig 4: Computational performance ─────────────────────────────────────────
@@ -264,7 +265,7 @@ def fig4_computational_performance(df: pd.DataFrame):
     path = os.path.join(FIG_DIR, 'fig4_computational_performance.png')
     plt.savefig(path)
     plt.close()
-    print(f"[Figures] Saved → {path}")
+    print(f"[Figures] Saved -> {path}")
 
 
 # ── Fig 5: Publication summary poster (2×2) ───────────────────────────────────
@@ -308,7 +309,7 @@ def fig5_summary_poster(df: pd.DataFrame):
         ax2.set_ylabel('Reduction vs Dijkstra (%)')
         ax2.set_title('(b) Travel time reduction by scenario')
         ax2.legend(fontsize=8)
-        ax2.set_ylim(bottom=0)
+        ax2.axhline(0, color='black', linewidth=0.8)
 
     # ── bottom-left: δ sensitivity ────────────────────────────────────────────
     ax3 = fig.add_subplot(gs[1, 0])
@@ -324,7 +325,7 @@ def fig5_summary_poster(df: pd.DataFrame):
     ax3.set_ylabel('Reduction vs Dijkstra (%)')
     ax3.set_title('(c) Threshold δ sensitivity analysis')
     ax3.legend(fontsize=8)
-    ax3.set_ylim(bottom=0)
+    ax3.axhline(0, color='black', linewidth=0.8)
 
     # ── bottom-right: latency ─────────────────────────────────────────────────
     ax4 = fig.add_subplot(gs[1, 1])
@@ -354,7 +355,7 @@ def fig5_summary_poster(df: pd.DataFrame):
     path = os.path.join(FIG_DIR, 'fig5_summary_poster.png')
     plt.savefig(path, bbox_inches='tight')
     plt.close()
-    print(f"[Figures] Saved → {path}")
+    print(f"[Figures] Saved -> {path}")
 
 
 # ── Statistical summary table ─────────────────────────────────────────────────
@@ -390,9 +391,10 @@ def print_stats_table(df: pd.DataFrame):
     print(stats_df.to_string(index=False))
 
     # save
-    stats_path = 'results/statistical_tests.csv'
+    stats_path = os.path.join(os.path.dirname(FIG_DIR) or 'results', 'statistical_tests.csv')
+    os.makedirs(os.path.dirname(stats_path) or '.', exist_ok=True)
     stats_df.to_csv(stats_path, index=False)
-    print(f"\n[Stats] Saved → {stats_path}")
+    print(f"\n[Stats] Saved -> {stats_path}")
     print("="*72)
 
     # ANOVA across delta values
@@ -401,8 +403,8 @@ def print_stats_table(df: pd.DataFrame):
     groups = [g for g in groups if len(g) > 2]
     if len(groups) >= 2:
         f, p = stats.f_oneway(*groups)
-        print(f"  F={f:.3f}, p={p:.4f} → "
-              f"{'SIGNIFICANT' if p < ALPHA else 'NOT significant'} at α={ALPHA}")
+        print(f"  F={f:.3f}, p={p:.4f} -> "
+              f"{'SIGNIFICANT' if p < ALPHA else 'NOT significant'} at alpha={ALPHA}")
     print("="*72 + "\n")
 
     return stats_df
@@ -414,6 +416,8 @@ def run_full_analysis(results_path: str = RESULTS_PATH,
     global FIG_DIR
     FIG_DIR = figures_dir
     os.makedirs(FIG_DIR, exist_ok=True)
+    from src.utils.console import configure_utf8
+    configure_utf8()
 
     df = load(results_path)
 
@@ -426,12 +430,12 @@ def run_full_analysis(results_path: str = RESULTS_PATH,
 
     stats_df = print_stats_table(df)
 
-    print(f"\n[Figures] ✓ All figures saved to: {FIG_DIR}/")
+    print(f"\n[Figures] OK All figures saved to: {FIG_DIR}/")
     print("  fig1_travel_time_comparison.png")
     print("  fig2_reduction_by_scenario.png")
     print("  fig3_delta_sensitivity.png")
     print("  fig4_computational_performance.png")
-    print("  fig5_summary_poster.png  ← publication-ready poster")
+    print("  fig5_summary_poster.png  <- publication-ready poster")
     return df, stats_df
 
 

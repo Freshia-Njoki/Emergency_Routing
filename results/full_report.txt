@@ -1,0 +1,201 @@
+
+=================================================================
+OBJECTIVE 2 -- GRU PREDICTION MODEL (METR-LA)
+=================================================================
+  Dataset          : METR-LA (207 sensors, 5-min speeds)
+  Architecture     : 2-layer GRU, 64 hidden units, dropout 0.2
+  Train/Val/Test   : 70% / 15% / 15% (chronological split)
+  Epochs trained   : 27
+  Final train loss : 0.3847
+  Best val loss    : 0.4335
+  Test MAE         : 3.48 mph
+  Test RMSE        : 6.04 mph
+  Scaler           : StandardScaler fitted on TRAIN split only
+
+=================================================================
+OBJECTIVE 2 -- GRU PREDICTION VERIFICATION
+=================================================================
+  Model loaded     : gru_improved_best.keras
+  Predicted mph    : 31.9 to 69.6
+  Predicted mean   : 63.3 mph
+  Sensible values  : YES
+  Scaler check     : 64.38 mph -> scaled mean 0.5273 -> 64.38 mph
+  Scaler status    : CORRECT
+
+=================================================================
+OBJECTIVE 2 -- ROAD NETWORK AND SENSOR MAPPING
+=================================================================
+  Graph type       : METR-LA sensor adjacency (DCRNN), not downtown OSM
+  Study area       : Los Angeles County loop detectors
+  Nodes            : 207
+  Directed edges   : 1515
+  Direct-mapped    : 1515
+  IDW-interpolated : 0
+  Speed coverage   : 100.0% of edges (direct + interpolated)
+  Unmapped fallback: OSM maxspeed / highway free-flow
+
+=================================================================
+OBJECTIVE 2 -- PEMS-BAY CROSS-DATASET VALIDATION
+=================================================================
+  Dataset          : PEMS-BAY (325 sensors)
+  Epochs trained   : 79
+  Final train loss : 0.0024
+  Best val loss    : 0.0027
+  Test MAE         : 2.38 mph
+  Test RMSE        : 4.49 mph
+  MAE gap vs LA    : 1.10 mph
+  Generalisation   : CONFIRMED (threshold 2.0 mph)
+
+=================================================================
+OBJECTIVES 3 & 4 -- RUNNING SIMULATION
+=================================================================
+  Ground-truth evaluation, sliding-window GRU, path-targeted incidents.
+  Simulation completed in 252.7s
+  0.0000
+peak_hour 0.15 75    1.05  4.73    0.00   1.925   0.0581         NO            0.0000
+peak_hour 0.20 75    1.16  4.76    0.00   2.111   0.0381        YES            0.0000
+ off_peak 0.05 75    0.01  1.51    0.00   0.062   0.9509         NO            0.0000
+ off_peak 0.10 75    0.01  1.51    0.00   0.062   0.9509         NO            0.0000
+ off_peak 0.15 75    0.01  1.51    0.00   0.062   0.9509         NO            0.0000
+ off_peak 0.20 75    0.01  1.51    0.00   0.062   0.9509         NO            0.0000
+ incident 0.05 75   16.26 10.75   13.97  13.097   0.0000        YES            0.0252
+ incident 0.10 75   16.24 10.76   13.97  13.078   0.0000        YES            0.0252
+ incident 0.15 75   16.12 10.64   13.97  13.118   0.0000        YES            0.0252
+ incident 0.20 75   16.13 10.50   13.97  13.299   0.0000        YES            0.0280
+
+[Stats] Saved -> results\simulation\statistical_tests.csv
+========================================================================
+
+  ONE-WAY ANOVA - Effect of delta on travel time reduction
+  F=0.001, p=1.0000 -> NOT significant at alpha=0.05
+========================================================================
+
+
+[Figures] OK All figures saved to: results\simulation\figures/
+  fig1_travel_time_comparison.png
+  fig2_reduction_by_scenario.png
+  fig3_delta_sensitivity.png
+  fig4_computational_performance.png
+  fig5_summary_poster.png  <- publication-ready poster
+[OK] Summary -> results\simulation\summary_statistics.csv
+
+DONE
+
+
+=================================================================
+OBJECTIVE 3 -- THRESHOLD POLICY ANALYSIS
+=================================================================
+  Experiment design: 75 OD pairs x 3 scenarios x 4 delta
+  Total experiments: 900
+
+  Delta | Mean Reduction vs B1 | Avg Replannings | Avg Latency
+  -----------------------------------------------------------------
+  0.05 | +5.726%            | 0.45            | 0.737 ms
+  0.10 | +5.748%            | 0.44            | 0.738 ms
+  0.15 | +5.726%            | 0.43            | 0.723 ms
+  0.20 | +5.767%            | 0.39            | 0.754 ms
+
+  ANOVA: F=0.001, p=1.0000
+  Recommended delta = 0.2 (best mean reduction vs Dijkstra)
+
+=================================================================
+OBJECTIVE 4 -- FRAMEWORK EVALUATION vs BASELINES
+=================================================================
+  OVERALL PERFORMANCE:
+  Baseline                   Mean Reduction       SD   Median
+  -----------------------------------------------------------------
+  B1: Dijkstra/Current              +5.741%   10.01%    0.19%
+  B2: Static A*                     +7.390%   12.08%    0.70%
+  B3: Reactive A*                   +0.606%    3.54%    0.00%
+  B4: Oracle A*                     -1.694%    5.64%    0.00%
+
+  COMPUTATIONAL PERFORMANCE:
+  TD-A* routing latency  : 0.738 ms (target < 1,000 ms)
+  GRU inference time     : 81.0 ms
+  Combined response time : ~81.7 ms
+  Avg replannings        : 0.43 per journey
+
+  BY SCENARIO:
+  Scenario        vs B1    vs B4  Replannings   t-stat  p-value   Sig?
+  -----------------------------------------------------------------
+  peak_hour      +1.03%   -1.23%         0.20     3.81   0.0002    Yes
+  off_peak       +0.01%   -0.05%         0.04     0.12   0.9013     No
+  incident      +16.19%   -3.80%         1.03    26.43   0.0000    Yes
+
+=================================================================
+COMPLETE FRAMEWORK SUMMARY -- ALL OBJECTIVES
+=================================================================
+  OBJECTIVE 1 -- Literature Review
+  Papers reviewed      : 37 peer-reviewed publications (2018-2026)
+  Gaps identified      : 4 (prediction-routing integration is the primary gap)
+
+  OBJECTIVE 2 -- Framework Development
+  GRU METR-LA MAE      : 3.48 mph
+  GRU PEMS-BAY MAE     : 2.38 mph
+  Components           : GRU module + TD-A* router + adaptive controller
+  Source code          : github.com/Freshia-Njoki/Emergency_Routing
+
+  OBJECTIVE 3 -- Threshold Policy
+  Evaluated delta      : {0.05, 0.10, 0.15, 0.20}
+  See ANOVA in the Objective 3 section above (computed from this run).
+
+  OBJECTIVE 4 -- Framework Evaluation
+  Numbers in this report are taken from results/simulation/simulation_results.csv
+  and are not hard-coded, so Chapters 4-5 stay consistent with the code.
+
+  KEY IMPLEMENTATION FIXES IN THIS BRANCH
+  1. Ground-truth journey evaluation (all methods, actual future speeds)
+  2. Inverse-scaled mph (no more scaled-as-mph 78% artefact)
+  3. Spatial IDW interpolation so unmapped edges are not fake 30 mph
+  4. Incidents placed on the Dijkstra path (so there is something to avoid)
+  5. Sliding-window + remaining-time threshold (T_old updates as the vehicle moves)
+  6. Windows cp1252-safe logging (no UnicodeEncodeError)
+  7. Scaler fitted on the training split only
+  8. METR-LA sensor graph (100% instrumented) as the default routing network
+  9. Nowcast+forecast fusion and incident persistence so replanning can fire
+  10. B3 is a true reactive replan (current snapshot), not a copy of Dijkstra
+
+=================================================================
+VISUALISATIONS GENERATED
+=================================================================
+  gru_predictions.png (227 KB)
+  gru_training_history.png (99 KB)
+  improved_gru_predictions.png (182 KB)
+  improved_gru_training.png (87 KB)
+  obj3_delta_sensitivity.png (51 KB)
+  obj4_latency_distribution.png (39 KB)
+  obj4_travel_time_reduction.png (50 KB)
+  prediction_comparison_both_datasets.png (129 KB)
+  sensor_coverage_map.png (742 KB)
+  traffic_heatmap.png (185 KB)
+  traffic_patterns.png (221 KB)
+  training_history_comparison.png (117 KB)
+
+=================================================================
+RESULTS FILES
+=================================================================
+  results\cross_validation_summary.csv (0 KB)
+  results\evaluation_results.csv (335 KB)
+  results\full_report.txt (9 KB)
+  results\statistical_tests.csv (0 KB)
+  results\summary_stats.csv (2 KB)
+  results\figures\fig1_travel_time_comparison.png (119 KB)
+  results\figures\fig2_reduction_by_scenario.png (136 KB)
+  results\figures\fig3_delta_sensitivity.png (184 KB)
+  results\figures\fig4_computational_performance.png (205 KB)
+  results\figures\fig5_summary_poster.png (340 KB)
+  results\simulation\simulation_results.csv (334 KB)
+  results\simulation\statistical_tests.csv (0 KB)
+  results\simulation\summary_statistics.csv (1 KB)
+  results\simulation\figures\fig1_travel_time_comparison.png (107 KB)
+  results\simulation\figures\fig2_reduction_by_scenario.png (155 KB)
+  results\simulation\figures\fig3_delta_sensitivity.png (199 KB)
+  results\simulation\figures\fig4_computational_performance.png (202 KB)
+  results\simulation\figures\fig5_summary_poster.png (326 KB)
+  results\sliding\evaluation_results.csv (335 KB)
+  results\sliding\summary_stats.csv (1 KB)
+  results\sliding\figures\fig1_travel_time_comparison.png (112 KB)
+  results\sliding\figures\fig2_reduction_by_scenario.png (165 KB)
+  results\sliding\figures\fig3_delta_sensitivity.png (182 KB)
+  results\sliding\figures\fig4_computational_performance.png (9249 KB)
+  results\sliding\figures\fig5_summary_poster.png (340 KB)
