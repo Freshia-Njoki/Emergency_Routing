@@ -1,0 +1,4 @@
+{
+  "name": "GRU Emergency Routing",
+  "install": "bash .cursor/install.sh"
+}
